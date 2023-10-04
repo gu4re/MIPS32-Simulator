@@ -1,0 +1,1 @@
+python3 ../ControlUnit.py ../assembly_code.txt

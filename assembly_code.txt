@@ -1,0 +1,5 @@
+# The label 'main' represents the starting point
+        .text
+main:
+        li  $t4,4
+        addi $t5,$t4,2
