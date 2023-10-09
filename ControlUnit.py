@@ -12,6 +12,7 @@ from LabelAddressMemory import LabelAddressMemory
 from RegistersMemory import RegistersMemory
 from PC import PC
 from ALU import ALU
+from library.colorama import Fore, Style
 
 
 class Segmentation:
@@ -20,7 +21,6 @@ class Segmentation:
     def fetch(pc):
         print(f"{datetime.now().strftime('[%H:%M:%S]')}[ControlUnit]:"
               f" Fetching PC...")
-        time.sleep(2)
         instruction = InstructionMemory.read(pc)
         if instruction is None:
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
@@ -28,9 +28,6 @@ class Segmentation:
             return None
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
               f"[ControlUnit]: Instruction read is '{instruction}'")
-        time.sleep(2)
-        print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-              f"[PC]: Updated!")
         PC.update(pc)
         return instruction
 
@@ -38,8 +35,10 @@ class Segmentation:
     def decode(if_id):
         if if_id is not None:
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-                  f"[ControlUnit]: Decoding instruction...")
-            time.sleep(2)
+                  f"[ControlUnit]: Decoding instruction '{if_id}' ...")
+            # Syscall path
+            if if_id == "syscall":
+                return if_id
             cod_op = if_id.split()[0]
             if len(if_id.split()[1].split(',')) == 3:
                 rd, rs, rt = if_id.split()[1].split(',')
@@ -47,16 +46,14 @@ class Segmentation:
                       f"[Decoder]: Operation code '{cod_op}', register of "
                       f"destiny '{rd}', first operand '{rs}', second operand "
                       f"'{rt}'")
-                time.sleep(2)
                 return cod_op, rd, rs, rt
-            else:
+                # instruction, destiny, op1, op2
+            elif len(if_id.split()[1].split(',')) == 2:
                 rd, rs = if_id.split()[1].split(',')
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                       f"[Decoder]: Operation code '{cod_op}', register of "
                       f"destiny '{rd}', first operand '{rs}'")
-                time.sleep(2)
                 return cod_op, rd, rs
-                # instruction, destiny, op1, op2
             # TODO: Needs comparison of jump here
         return None
 
@@ -70,25 +67,47 @@ class Segmentation:
     @staticmethod
     def execute(dec_exec):
         if dec_exec is not None:
+            if dec_exec == "syscall":
+                v0_value = RegistersMemory.read("$v0")
+                # I/O operations
+                if int(v0_value) == 4:
+                    a0_value = RegistersMemory.read("$a0")
+                    print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                          f"[SysCall/Output]: {a0_value}{Style.RESET_ALL}")
+                    return None
+                else:
+                    print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                          f"[SysCall/Input]: {Style.RESET_ALL}", end="")
+                    inp = int(input(f"{Fore.YELLOW}{Style.BRIGHT}"))
+                    print(f"{Style.RESET_ALL}", end="")
+                    RegistersMemory.write("$v0", inp)
+                    return None
             cod_op = dec_exec[0]
+            print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+                  f"[ControlUnit]: Executing '{cod_op}' instruction ...")
             if cod_op == "addi":
                 rd, rs, rt = dec_exec[1:]
-                print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-                      f"[ControlUnit]: Executing 'addi' instruction ...")
-                time.sleep(2)
-                RegistersMemory.write(rd, ALU.add(RegistersMemory.read(rs),
+                RegistersMemory.write(rd, ALU.add(int(RegistersMemory.read(rs)),
                                                   int(rt)))
                 return None
             elif cod_op == "li":
                 rd, rs = dec_exec[1:]
-                print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-                      f"[ControlUnit]: Executing 'li' instruction ...")
                 RegistersMemory.write(rd, rs)
                 # Check if 'li' writes in EX time or WB time
                 return None
+            elif cod_op == "la":
+                rd, rs = dec_exec[1:]
+                mem_address, which_mem = LabelAddressMemory.read(rs)
+                if which_mem == 'D':
+                    RegistersMemory.write(rd, DataMemory.read(mem_address))
+                    # Check if we read from dataMemory here or in MEM
+                else:
+                    raise Exception(f"{datetime.now().strftime('[%H:%M:%S]')}"
+                                    f"[ControlUnit]: Wrong memory access, aborting execution ...")
             elif cod_op == "sw":
                 rd, rs = dec_exec[1:]
                 return LabelAddressMemory.read(rs), RegistersMemory.read(rd)
+                # TODO missing implementation of sw
         return None
 
     @staticmethod
@@ -103,6 +122,7 @@ class ControlUnit:
 
     @staticmethod
     def interpret(argv):
+        time.sleep(2)
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
               f"[Interpreter]: Reading input file ({argv[1]}) ...")
         # Save the original stderr and redirects the actual one into a stream
@@ -114,6 +134,7 @@ class ControlUnit:
             CommonTokenStream(
                 InterpreterLexer(
                     FileStream(argv[1])))).interpret()
+        # TODO should abstract Interpreter to another class
         time.sleep(2)
         # Establish the stderr to default
         sys.stderr = original_stderr
@@ -122,9 +143,9 @@ class ControlUnit:
             error_messages = (compilation_errors_stream.getvalue()
                               .strip().split('\n'))
             for err_msg in error_messages:
-                print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+                print(f"{Fore.LIGHTRED_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                       f"[Interpreter]: {err_msg}")
-            print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+            print(f"{Fore.LIGHTRED_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[Interpreter]: Failed to read input file ({argv[1]}).")
             compilation_errors_stream.close()
             exit(1)
@@ -132,43 +153,42 @@ class ControlUnit:
         else:
             compilation_errors_stream.close()
             time.sleep(2)
-            print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-                  f"[ControlUnit]: Filling Memories ... ")
+            print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                  f"[ControlUnit]: Printing Memories ... ")
+            time.sleep(1)
             print()
-            time.sleep(2)
             DataMemory.print()
-            time.sleep(2)
             InstructionMemory.print()
-            time.sleep(2)
             LabelAddressMemory.print()
-            print()
+            print(f"{Style.RESET_ALL}")
 
     @staticmethod
     def start():
-        if_id = None
-        exec_mem = None
-        mem_wb = None
-        dec_exec = None
-        
-        while True:
-            Segmentation.write_back(mem_wb)
-            aux = Segmentation.execute(dec_exec)
-            mem_wb = Segmentation.memory(exec_mem)
-            exec_mem = aux
-            dec_exec = Segmentation.decode(if_id)
-            if_id = Segmentation.fetch(PC.read())
+        if_id, exec_mem, mem_wb, dec_exec = [None]*4
+        try:
+            while True:
+                Segmentation.write_back(mem_wb)
+                aux = Segmentation.execute(dec_exec)
+                mem_wb = Segmentation.memory(exec_mem)
+                exec_mem = aux
+                dec_exec = Segmentation.decode(if_id)
+                if_id = Segmentation.fetch(PC.read())
 
-            # If all the variables are empty, we break the loop
-            if (if_id is None and exec_mem is None
-                    and mem_wb is None and dec_exec is None):
-                break
-        print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-              f"[ControlUnit]: Finishing program ... ")
+                # If all the variables are empty, we break the loop
+                if (if_id is None and exec_mem is None
+                        and mem_wb is None and dec_exec is None):
+                    break
+        except Exception as e:
+            print(f"{Fore.LIGHTRED_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                  f"[ControlUnit]: {e} {Style.RESET_ALL}")
+        print(f"{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+              f"[ControlUnit]: Program exited with error code 0 {Style.RESET_ALL}")
 
 
 if __name__ == '__main__':
-    print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-          f"[ControlUnit]: Generating Circuit ... ")
-    time.sleep(2)
+    print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+          f"[ControlUnit]: Generating Circuit ... {Style.RESET_ALL}")
     ControlUnit.interpret(sys.argv)
+    print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+          f"[ControlUnit]: Starting program ... {Style.RESET_ALL}")
     ControlUnit.start()

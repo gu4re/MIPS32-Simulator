@@ -1,4 +1,4 @@
-# Generated from /Users/diegopicazo/Downloads/practica2/Interpreter.g4 by ANTLR 4.13.1
+# Generated from /Users/diegopicazo/Documents/github/MIPS32Simulator/Interpreter.g4 by ANTLR 4.13.1
 from library.antlr4 import *
 if "." in __name__:
     from .InterpreterParser import InterpreterParser

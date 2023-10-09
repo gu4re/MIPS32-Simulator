@@ -41,12 +41,12 @@ J_OPERATION: 'j' WS [A-Za-z]+ ;
 data: TAG WS? ('.asciiz' STRING {
 generated_address = DataMemory.generate_address()
 DataMemory.write(generated_address, $STRING.text)
-LabelAddressMemory.write($TAG.text, (generated_address, 'D'))
+LabelAddressMemory.write($TAG.text.replace(':', ''), (generated_address, 'D'))
 } | '.word' INTEGER {
 generated_address = DataMemory.generate_address()
 DataMemory.write(DataMemory.generate_address(),
         int($INTEGER.text))
-LabelAddressMemory.write($TAG.text, (generated_address, 'D'))
+LabelAddressMemory.write($TAG.text.replace(':', ''), (generated_address, 'D'))
 }) ;
 data_block: '.data' WS? data (WS? data)* WS? ;
 instruction returns [generated_address]: (SYSCALL | R_OPERATION | I_OPERATION
@@ -56,6 +56,6 @@ InstructionMemory.write(generated_address, $text.replace('\t', '    '))
 $generated_address = generated_address
 } ;
 instruction_block: TAG WS? instruction {
-LabelAddressMemory.write($TAG.text, ($instruction.generated_address, 'I'))
+LabelAddressMemory.write($TAG.text.replace(':', ''), ($instruction.generated_address, 'I'))
 } (WS? instruction)* WS? ;
 interpret: data_block? '.text' instruction_block+ | COMMENT ;

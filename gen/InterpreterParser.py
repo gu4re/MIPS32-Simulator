@@ -1,4 +1,4 @@
-# Generated from /Users/diegopicazo/Downloads/practica2/Interpreter.g4 by ANTLR 4.13.1
+# Generated from /Users/diegopicazo/Documents/github/MIPS32Simulator/Interpreter.g4 by ANTLR 4.13.1
 # encoding: utf-8
 from library.antlr4 import *
 from io import StringIO
@@ -162,7 +162,7 @@ class InterpreterParser ( Parser ):
 
                 generated_address = DataMemory.generate_address()
                 DataMemory.write(generated_address, (None if localctx._STRING is None else localctx._STRING.text))
-                LabelAddressMemory.write((None if localctx._TAG is None else localctx._TAG.text), (generated_address, 'D'))
+                LabelAddressMemory.write((None if localctx._TAG is None else localctx._TAG.text).replace(':', ''), (generated_address, 'D'))
 
                 pass
             elif token in [2]:
@@ -174,7 +174,7 @@ class InterpreterParser ( Parser ):
                 generated_address = DataMemory.generate_address()
                 DataMemory.write(DataMemory.generate_address(),
                         int((None if localctx._INTEGER is None else localctx._INTEGER.text)))
-                LabelAddressMemory.write((None if localctx._TAG is None else localctx._TAG.text), (generated_address, 'D'))
+                LabelAddressMemory.write((None if localctx._TAG is None else localctx._TAG.text).replace(':', ''), (generated_address, 'D'))
 
                 pass
             else:
@@ -417,7 +417,7 @@ class InterpreterParser ( Parser ):
             self.state = 46
             localctx._instruction = self.instruction()
 
-            LabelAddressMemory.write((None if localctx._TAG is None else localctx._TAG.text), (localctx._instruction.generated_address, 'I'))
+            LabelAddressMemory.write((None if localctx._TAG is None else localctx._TAG.text).replace(':', ''), (localctx._instruction.generated_address, 'I'))
 
             self.state = 54
             self._errHandler.sync(self)

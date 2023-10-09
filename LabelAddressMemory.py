@@ -1,4 +1,7 @@
+import time
+
 from Memory import Memory
+from datetime import datetime
 
 
 class LabelAddressMemory(Memory):
@@ -8,9 +11,15 @@ class LabelAddressMemory(Memory):
     @staticmethod
     def write(key, value):
         LabelAddressMemory.__label_address_memory[key] = value
+        time.sleep(1)
+        print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+              f"[LabelAddressMemory]: Value '{value}' loaded at '{key}'.")
 
     @staticmethod
     def read(key):
+        time.sleep(1)
+        print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+              f"[LabelAddressMemory]: Read address '{key}'.")
         return LabelAddressMemory.__label_address_memory.get(key, None)
 
     @staticmethod
@@ -19,6 +28,7 @@ class LabelAddressMemory(Memory):
         for key, value in LabelAddressMemory.__label_address_memory.items():
             print(f"| Key: {key}, Value: {value}")
         print("|---------------------------------------------------|")
+        time.sleep(2)
 
     @staticmethod
     def generate_address():
