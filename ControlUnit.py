@@ -13,6 +13,7 @@ from RegistersMemory import RegistersMemory
 from PC import PC
 from ALU import ALU
 from library.colorama import Fore, Style
+from IntermediateRegisters import If_Id, Id_Ex, Ex_Mem, Mem_Wb
 
 
 class Segmentation:
@@ -29,16 +30,17 @@ class Segmentation:
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
               f"[ControlUnit]: Instruction read is '{instruction}'")
         PC.update(pc)
-        return instruction
+        return If_Id(instruction)
 
     @staticmethod
     def decode(if_id):
         if if_id is not None:
+            if_id = if_id.read()
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[ControlUnit]: Decoding instruction '{if_id}' ...")
             # Syscall path
             if if_id == "syscall":
-                return if_id
+                return Id_Ex(if_id)
             cod_op = if_id.split()[0]
             if len(if_id.split()[1].split(',')) == 3:
                 rd, rs, rt = if_id.split()[1].split(',')
@@ -46,28 +48,39 @@ class Segmentation:
                       f"[Decoder]: Operation code '{cod_op}', register of "
                       f"destiny '{rd}', first operand '{rs}', second operand "
                       f"'{rt}'")
-                return cod_op, rd, rs, rt
+                return Id_Ex(cod_op, rd, rs, rt)
                 # instruction, destiny, op1, op2
             elif len(if_id.split()[1].split(',')) == 2:
                 rd, rs = if_id.split()[1].split(',')
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                       f"[Decoder]: Operation code '{cod_op}', register of "
                       f"destiny '{rd}', first operand '{rs}'")
-                return cod_op, rd, rs
+                return Id_Ex(cod_op, rd, rs)
             # TODO: Needs comparison of jump here
         return None
 
     @staticmethod
-    def memory(exec_mem):
-        if exec_mem is not None:
-            address, value = exec_mem
-        # TODO: Needs implementation
+    def memory(ex_mem):
+        if ex_mem is not None:
+            instruction_collection = ["lw", "la", "sw"]
+            if ex_mem.read_cod_op() not in instruction_collection:
+                print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+                      f"[DataMemory]: Ignoring '{ex_mem.read_cod_op()}' instruction ...")
+                return Mem_Wb(ex_mem.read_destination(), ex_mem.read_address_or_value())
+            elif ex_mem.read_cod_op() == "la":
+                return Mem_Wb(ex_mem.read_destination(),
+                              DataMemory.read(ex_mem.read_address_or_value()))
+            elif ex_mem.read_cod_op() == "sw":
+                DataMemory.write(ex_mem.read_destination(), ex_mem.read_address_or_value())
+                return None
+            # TODO: Needs implementation of lw
         return None
 
     @staticmethod
-    def execute(dec_exec):
-        if dec_exec is not None:
-            if dec_exec == "syscall":
+    def execute(id_ex):
+        if id_ex is not None:
+            cod_op = id_ex.read_cod_op()
+            if cod_op == "syscall":
                 v0_value = RegistersMemory.read("$v0")
                 # I/O operations
                 if int(v0_value) == 4:
@@ -75,44 +88,37 @@ class Segmentation:
                     print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[SysCall/Output]: {a0_value}{Style.RESET_ALL}")
                     return None
+                    # TODO need to solve RAW between syscall and write_back
                 else:
                     print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[SysCall/Input]: {Style.RESET_ALL}", end="")
                     inp = int(input(f"{Fore.YELLOW}{Style.BRIGHT}"))
                     print(f"{Style.RESET_ALL}", end="")
-                    RegistersMemory.write("$v0", inp)
-                    return None
-            cod_op = dec_exec[0]
+                    return Ex_Mem(cod_op, "$v0", inp)
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[ControlUnit]: Executing '{cod_op}' instruction ...")
             if cod_op == "addi":
-                rd, rs, rt = dec_exec[1:]
-                RegistersMemory.write(rd, ALU.add(int(RegistersMemory.read(rs)),
-                                                  int(rt)))
-                return None
+                rd, rs, rt = id_ex.read_rd(), id_ex.read_rs(), id_ex.read_rt()
+                return Ex_Mem(cod_op, rd, ALU.add(int(RegistersMemory.read(rs)), int(rt)))
             elif cod_op == "li":
-                rd, rs = dec_exec[1:]
-                RegistersMemory.write(rd, rs)
-                # Check if 'li' writes in EX time or WB time
-                return None
+                return Ex_Mem(cod_op, id_ex.read_rd(), id_ex.read_rs())
             elif cod_op == "la":
-                rd, rs = dec_exec[1:]
+                rd, rs = id_ex.read_rd(), id_ex.read_rs()
                 mem_address, which_mem = LabelAddressMemory.read(rs)
                 if which_mem == 'D':
-                    RegistersMemory.write(rd, DataMemory.read(mem_address))
-                    # Check if we read from dataMemory here or in MEM
+                    return Ex_Mem(cod_op, rd, mem_address)
                 else:
                     raise Exception(f"{datetime.now().strftime('[%H:%M:%S]')}"
                                     f"[ControlUnit]: Wrong memory access, aborting execution ...")
             elif cod_op == "sw":
-                rd, rs = dec_exec[1:]
-                return LabelAddressMemory.read(rs), RegistersMemory.read(rd)
-                # TODO missing implementation of sw
+                return Ex_Mem(cod_op, LabelAddressMemory.read(id_ex.read_rd()),
+                              RegistersMemory.read(id_ex.read_rs()))
         return None
 
     @staticmethod
     def write_back(mem_wb):
         if mem_wb is not None:
+            RegistersMemory.write(mem_wb.read_destination(), mem_wb.read_value())
             return None
         # TODO: Needs implementation
         return None
@@ -164,23 +170,26 @@ class ControlUnit:
 
     @staticmethod
     def start():
-        if_id, exec_mem, mem_wb, dec_exec = [None]*4
+        if_id, ex_mem, mem_wb, id_ex = [None]*4
         try:
             while True:
                 Segmentation.write_back(mem_wb)
-                aux = Segmentation.execute(dec_exec)
-                mem_wb = Segmentation.memory(exec_mem)
-                exec_mem = aux
-                dec_exec = Segmentation.decode(if_id)
+                aux = Segmentation.execute(id_ex)
+                mem_wb = Segmentation.memory(ex_mem)
+                ex_mem = aux
+                id_ex = Segmentation.decode(if_id)
                 if_id = Segmentation.fetch(PC.read())
 
                 # If all the variables are empty, we break the loop
-                if (if_id is None and exec_mem is None
-                        and mem_wb is None and dec_exec is None):
+                if (if_id is None and ex_mem is None
+                        and mem_wb is None and id_ex is None):
                     break
         except Exception as e:
             print(f"{Fore.LIGHTRED_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[ControlUnit]: {e} {Style.RESET_ALL}")
+            print(f"{Fore.LIGHTRED_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                  f"[ControlUnit]: Program exited with error code 1 {Style.RESET_ALL}")
+            return
         print(f"{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
               f"[ControlUnit]: Program exited with error code 0 {Style.RESET_ALL}")
 
