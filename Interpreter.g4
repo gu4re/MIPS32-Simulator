@@ -2,9 +2,9 @@ grammar Interpreter;
 
 /********* Imports *********/
 @parser::header {
-from InstructionMemory import InstructionMemory
-from DataMemory import DataMemory
-from LabelAddressMemory import LabelAddressMemory
+from Memory.InstructionMemory import InstructionMemory
+from Memory.DataMemory import DataMemory
+from Memory.LabelAddressMemory import LabelAddressMemory
 }
 
 /********* Utilities *********/
