@@ -14,6 +14,7 @@ from library.colorama import Fore, Style
 from Control.Segmentation import Segmentation
 
 # TODO Needs Forwarding unit class to solve RAWs
+# TODO Needs a Circuit Class to group all elements to solve RAWs
 
 
 class ControlUnit:
