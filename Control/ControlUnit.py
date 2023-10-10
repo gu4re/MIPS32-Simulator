@@ -68,7 +68,7 @@ class ControlUnit:
         try:
             while True:
                 print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
-                      f"{'-'*35} PHASE {i} {'-'*35}{Style.RESET_ALL}")
+                      f"{'-'*45} PHASE {i} {'-'*45}{Style.RESET_ALL}")
                 Segmentation.write_back(mem_wb)
                 aux = Segmentation.execute(id_ex)
                 mem_wb = Segmentation.memory(ex_mem)
