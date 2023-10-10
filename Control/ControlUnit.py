@@ -9,15 +9,21 @@ from io import StringIO
 from Memory.DataMemory import DataMemory
 from Memory.InstructionMemory import InstructionMemory
 from Memory.LabelAddressMemory import LabelAddressMemory
-from Register.PC import PC
 from library.colorama import Fore, Style
 from Control.Segmentation import Segmentation
+from Control.ShortCircuitUnit import ShortCircuitUnit
+from Circuit import Circuit
 
 # TODO Needs Forwarding unit class to solve RAWs
 # TODO Needs a Circuit Class to group all elements to solve RAWs
 
 
 class ControlUnit:
+
+    def __init__(self):
+        self.__circuit = Circuit()
+        self.__segmentation = Segmentation(self.__circuit)
+        self.__short_circuit_unit = ShortCircuitUnit(self.__circuit)
 
     @staticmethod
     def interpret(argv):
@@ -61,9 +67,10 @@ class ControlUnit:
             LabelAddressMemory.print()
             print(f"{Style.RESET_ALL}")
 
-    @staticmethod
-    def start():
-        if_id, ex_mem, mem_wb, id_ex = [None]*4
+    def start(self):
+        if_id = False
+        mem_wb = False
+        ex_mem, id_ex = [None] * 2
         i = 0
         try:
             while True:
@@ -71,14 +78,14 @@ class ControlUnit:
                       f"{'-'*45} PHASE {i} {'-'*45}{Style.RESET_ALL}")
                 Segmentation.write_back(mem_wb)
                 aux = Segmentation.execute(id_ex)
-                mem_wb = Segmentation.memory(ex_mem)
+                mem_wb = self.__segmentation.memory(ex_mem)
                 ex_mem = aux
                 id_ex = Segmentation.decode(if_id)
-                if_id = Segmentation.fetch(PC.read())
+                if_id = self.__segmentation.fetch()
                 i = i + 1
                 # If all the variables are empty, we break the loop
-                if (if_id is None and ex_mem is None
-                        and mem_wb is None and id_ex is None):
+                if (if_id is False and ex_mem is None
+                        and mem_wb is False and id_ex is None):
                     break
         except Exception as e:
             print(f"{Fore.LIGHTRED_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"

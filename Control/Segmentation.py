@@ -1,36 +1,38 @@
 from Register.If_Id import If_Id
 from Register.Id_Ex import Id_Ex
 from Register.Ex_Mem import Ex_Mem
-from Register.Mem_Wb import Mem_Wb
 from ALU.BasicALU import BasicALU
 from Memory.RegistersMemory import RegistersMemory
 from datetime import datetime
 from Memory.DataMemory import DataMemory
 from Memory.InstructionMemory import InstructionMemory
 from Memory.LabelAddressMemory import LabelAddressMemory
-from Register.PC import PC
 from library.colorama import Fore, Style
+from Circuit import Circuit
 
 
 class Segmentation:
 
-    @staticmethod
-    def fetch(pc):
+    def __init__(self, circuit: Circuit):
+        self.__circuit = circuit
+
+    def fetch(self):
+        pc = self.__circuit.get_pc().read()
         print(f"{datetime.now().strftime('[%H:%M:%S]')}[ControlUnit]:"
-              f" Fetching PC...")
+              f" Fetching PC ...")
         instruction = InstructionMemory.read(pc)
         if instruction is None:
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-                  f"[ControlUnit]: No more instructions left!")
-            return None
+                  f"[Fetcher]: No more instructions left!")
+            return False
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-              f"[ControlUnit]: Instruction read is '{instruction}'")
-        PC.update(pc)
-        return If_Id(instruction)
+              f"[Fetcher]: Instruction read is '{instruction}'")
+        self.__circuit.get_pc().update(pc)
+        return True
 
     @staticmethod
     def decode(if_id):
-        if if_id is not None:
+        if if_id is not False:
             if_id = if_id.read()
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[ControlUnit]: Decoding instruction '{if_id}' ...")
@@ -77,22 +79,25 @@ class Segmentation:
             # TODO: Calculate address to jump and put a print simulating in EX
         return None
 
-    @staticmethod
-    def memory(ex_mem):
+    def memory(self, ex_mem):
         if ex_mem is not None:
             instruction_collection = ["lw", "la", "sw"]
+            mem_wb = self.__circuit.get_mem_wb()
             if ex_mem.read_cod_op() not in instruction_collection:
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                       f"[DataMemory]: Ignoring '{ex_mem.read_cod_op()}' instruction ...")
-                return Mem_Wb(ex_mem.read_destination(), ex_mem.read_address_or_value())
+                mem_wb.write_destination(ex_mem.read_destination())
+                mem_wb.write_value(ex_mem.read_address_or_value())
+                return True
             elif ex_mem.read_cod_op() == "la":
-                return Mem_Wb(ex_mem.read_destination(),
-                              DataMemory.read(ex_mem.read_address_or_value()))
+                mem_wb.write_destination(ex_mem.read_destination())
+                mem_wb.write_value(DataMemory.read(ex_mem.read_address_or_value()))
+                return False
             elif ex_mem.read_cod_op() == "sw":
                 DataMemory.write(ex_mem.read_destination(), ex_mem.read_address_or_value())
-                return None
+                return False
             # TODO: Needs implementation of lw
-        return None
+        return False
 
     @staticmethod
     def execute(id_ex):
