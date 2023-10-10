@@ -1,1 +1,1 @@
-python3 ../ControlUnit.py ../assembly_code.txt
+python3 ../Main.py ../assembly_code.txt
