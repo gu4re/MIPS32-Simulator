@@ -63,15 +63,18 @@ class ControlUnit:
     @staticmethod
     def start():
         if_id, ex_mem, mem_wb, id_ex = [None]*4
+        i = 0
         try:
             while True:
+                print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                      f"{'-'*35} PHASE {i} {'-'*35}{Style.RESET_ALL}")
                 Segmentation.write_back(mem_wb)
                 aux = Segmentation.execute(id_ex)
                 mem_wb = Segmentation.memory(ex_mem)
                 ex_mem = aux
                 id_ex = Segmentation.decode(if_id)
                 if_id = Segmentation.fetch(PC.read())
-
+                i = i + 1
                 # If all the variables are empty, we break the loop
                 if (if_id is None and ex_mem is None
                         and mem_wb is None and id_ex is None):

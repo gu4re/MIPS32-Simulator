@@ -74,6 +74,7 @@ class Segmentation:
                       f"destiny '{rd}', first operand '{rs}'")
                 return Id_Ex(cod_op, rd, rs)
             # TODO: Needs comparison of jump here
+            # TODO: Calculate address to jump and put a print simulating in EX
         return None
 
     @staticmethod
