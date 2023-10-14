@@ -75,7 +75,7 @@ class ControlUnit:
                 print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                       f"{'-'*45} PHASE {i} {'-'*45}{Style.RESET_ALL}")
                 self.__segmentation.write_back(mem_wb)
-                aux = Segmentation.execute(id_ex)
+                aux = self.__segmentation.execute(id_ex)
                 mem_wb = self.__segmentation.memory(ex_mem)
                 ex_mem = aux
                 id_ex = self.__segmentation.decode(if_id)

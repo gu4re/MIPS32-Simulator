@@ -1,5 +1,3 @@
-from Register.Ex_Mem import Ex_Mem
-from ALU.BasicALU import BasicALU
 from Memory.RegistersMemory import RegistersMemory
 from datetime import datetime
 from Memory.DataMemory import DataMemory
@@ -31,7 +29,7 @@ class Segmentation:
 
     def decode(self, if_id):
         if if_id is not False:
-            if_id = if_id.read_instruction()
+            if_id = self.__circuit.get_if_id().read_instruction()
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[ControlUnit]: Decoding instruction '{if_id}' ...")
             # Syscall path
@@ -88,12 +86,10 @@ class Segmentation:
             if ex_mem.read_cod_op() not in instruction_collection:
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                       f"[DataMemory]: Ignoring '{ex_mem.read_cod_op()}' instruction ...")
-                mem_wb.write_destination(ex_mem.read_destination())
-                mem_wb.write_value(ex_mem.read_address_or_value())
+                mem_wb.write(ex_mem.read_destination(), ex_mem.read_address_or_value())
                 return True
             elif ex_mem.read_cod_op() == "la":
-                mem_wb.write_destination(ex_mem.read_destination())
-                mem_wb.write_value(DataMemory.read(ex_mem.read_address_or_value()))
+                mem_wb.write(ex_mem.read_destination(), DataMemory.read(ex_mem.read_address_or_value()))
                 return False
             elif ex_mem.read_cod_op() == "sw":
                 DataMemory.write(ex_mem.read_destination(), ex_mem.read_address_or_value())
@@ -101,9 +97,8 @@ class Segmentation:
             # TODO: Needs implementation of lw
         return False
 
-    @staticmethod
-    def execute(id_ex):
-        if id_ex is not None:
+    def execute(self, id_ex):
+        if id_ex is not False:
             cod_op = id_ex.read_cod_op()
             if cod_op == "syscall":
                 v0_value = id_ex.read_rs()
@@ -112,13 +107,14 @@ class Segmentation:
                     a0_value = id_ex.read_rt()
                     print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[SysCall/Output]: {a0_value}{Style.RESET_ALL}")
-                    return None
+                    return False
                 elif int(v0_value) == 5:
                     print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[SysCall/Input]: {Style.RESET_ALL}", end="")
                     inp = int(input(f"{Fore.YELLOW}{Style.BRIGHT}"))
                     print(f"{Style.RESET_ALL}", end="")
-                    return Ex_Mem(cod_op, "$v0", inp)
+                    self.__circuit.get_ex_mem().write(cod_op, "$v0", inp)
+                    return True
                 else:
                     raise Exception("SysCall wrong code ...")
                     # TODO missing SysCall code 1 implementation
@@ -126,14 +122,21 @@ class Segmentation:
                   f"[ControlUnit]: Executing '{cod_op}' instruction ...")
             rd, rs, rt = id_ex.read_rd(), id_ex.read_rs(), id_ex.read_rt()
             if cod_op == "addi":
-                return Ex_Mem(cod_op, rd, BasicALU.add(int(rs), int(rt)))
+                self.__circuit.get_ex_mem().write(cod_op, rd,
+                                                  self.__circuit.get_basic_alu().add(int(rs), int(rt)))
+                return True
             elif cod_op == "mul":
-                return Ex_Mem(cod_op, rd, BasicALU.multiply(int(rs), int(rt)))
+                self.__circuit.get_ex_mem().write(cod_op, rd,
+                                                  self.__circuit.get_basic_alu().multiply(int(rs), int(rt)))
+                return True
             elif cod_op == "sub":
-                return Ex_Mem(cod_op, rd, BasicALU.subtract(int(rs), int(rt)))
+                self.__circuit.get_ex_mem().write(cod_op, rd,
+                                                  self.__circuit.get_basic_alu().subtract(int(rs), int(rt)))
+                return True
             elif cod_op == "li" or cod_op == "la" or cod_op == "sw":
-                return Ex_Mem(cod_op, id_ex.read_rd(), id_ex.read_rs())
-        return None
+                self.__circuit.get_ex_mem().write(cod_op, id_ex.read_rd(), id_ex.read_rs())
+                return True
+        return False
 
     def write_back(self, mem_wb):
         if mem_wb is not False:

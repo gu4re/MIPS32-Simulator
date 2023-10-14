@@ -9,8 +9,6 @@ class Mem_Wb:
     def read_value(self):
         return self.__value
 
-    def write_destination(self, new_destination):
+    def write(self, new_destination, new_value):
         self.__destination = new_destination
-
-    def write_value(self, new_value):
         self.__value = new_value
