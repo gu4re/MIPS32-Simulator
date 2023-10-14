@@ -1,5 +1,3 @@
-from Register.If_Id import If_Id
-from Register.Id_Ex import Id_Ex
 from Register.Ex_Mem import Ex_Mem
 from ALU.BasicALU import BasicALU
 from Memory.RegistersMemory import RegistersMemory
@@ -17,28 +15,30 @@ class Segmentation:
         self.__circuit = circuit
 
     def fetch(self):
-        pc = self.__circuit.get_pc().read()
+        content_pc = self.__circuit.get_pc().read()
         print(f"{datetime.now().strftime('[%H:%M:%S]')}[ControlUnit]:"
               f" Fetching PC ...")
-        instruction = InstructionMemory.read(pc)
-        if instruction is None:
+        new_instruction = InstructionMemory.read(content_pc)
+        if new_instruction is None:
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[Fetcher]: No more instructions left!")
             return False
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-              f"[Fetcher]: Instruction read is '{instruction}'")
-        self.__circuit.get_pc().update(pc)
+              f"[Fetcher]: Instruction read is '{new_instruction}'")
+        self.__circuit.get_if_id().write_instruction(new_instruction)
+        self.__circuit.get_pc().update(content_pc)
         return True
 
-    @staticmethod
-    def decode(if_id):
+    def decode(self, if_id):
         if if_id is not False:
-            if_id = if_id.read()
+            if_id = if_id.read_instruction()
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[ControlUnit]: Decoding instruction '{if_id}' ...")
             # Syscall path
             if if_id == "syscall":
-                return Id_Ex(if_id, rs=RegistersMemory.read("$v0"), rt=RegistersMemory.read("$a0"))
+                self.__circuit.get_id_ex().write(if_id, rs=RegistersMemory.read("$v0"),
+                                                 rt=RegistersMemory.read("$a0"))
+                return True
                 # TODO Need to resolve RAW provoked by syscall
             cod_op = if_id.split()[0]
             if len(if_id.split()[1].split(',')) == 3:
@@ -51,7 +51,8 @@ class Segmentation:
                       f"[Decoder]: Operation code '{cod_op}', register of "
                       f"destiny '{rd}', first operand '{rs}', second operand "
                       f"'{rt}'")
-                return Id_Ex(cod_op, rd, rs, rt)
+                self.__circuit.get_id_ex().write(cod_op, rd, rs, rt)
+                return True
                 # instruction, destiny, op1, op2
             elif len(if_id.split()[1].split(',')) == 2:
                 if cod_op == "sw":
@@ -74,13 +75,14 @@ class Segmentation:
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                       f"[Decoder]: Operation code '{cod_op}', register of "
                       f"destiny '{rd}', first operand '{rs}'")
-                return Id_Ex(cod_op, rd, rs)
+                self.__circuit.get_id_ex().write(cod_op, rd, rs)
+                return True
             # TODO: Needs comparison of jump here
             # TODO: Calculate address to jump and put a print simulating in EX
-        return None
+        return False
 
     def memory(self, ex_mem):
-        if ex_mem is not None:
+        if ex_mem is not False:
             instruction_collection = ["lw", "la", "sw"]
             mem_wb = self.__circuit.get_mem_wb()
             if ex_mem.read_cod_op() not in instruction_collection:
@@ -133,7 +135,7 @@ class Segmentation:
                 return Ex_Mem(cod_op, id_ex.read_rd(), id_ex.read_rs())
         return None
 
-    @staticmethod
-    def write_back(mem_wb):
-        if mem_wb is not None:
-            RegistersMemory.write(mem_wb.read_destination(), mem_wb.read_value())
+    def write_back(self, mem_wb):
+        if mem_wb is not False:
+            RegistersMemory.write(self.__circuit.get_mem_wb().read_destination(),
+                                  self.__circuit.get_mem_wb().read_value())

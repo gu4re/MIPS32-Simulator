@@ -1,9 +1,9 @@
 class Id_Ex:
-    def __init__(self, cod_op, rd=None, rs=None, rt=None):
-        self.__cod_op = cod_op
-        self.__rd = rd
-        self.__rs = rs
-        self.__rt = rt
+    def __init__(self):
+        self.__cod_op = None
+        self.__rd = None
+        self.__rs = None
+        self.__rt = None
 
     def read_cod_op(self):
         return self.__cod_op
@@ -16,3 +16,9 @@ class Id_Ex:
 
     def read_rt(self):
         return self.__rt
+
+    def write(self, new_cod_op, new_rd=None, new_rs=None, new_rt=None):
+        self.__cod_op = new_cod_op
+        self.__rd = new_rd
+        self.__rs = new_rs
+        self.__rt = new_rt

@@ -1,7 +1,7 @@
 class Mem_Wb:
     def __init__(self):
-        self.__destination = 0
-        self.__value = 0
+        self.__destination = None
+        self.__value = None
 
     def read_destination(self):
         return self.__destination

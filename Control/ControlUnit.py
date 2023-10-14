@@ -68,24 +68,22 @@ class ControlUnit:
             print(f"{Style.RESET_ALL}")
 
     def start(self):
-        if_id = False
-        mem_wb = False
-        ex_mem, id_ex = [None] * 2
+        if_id, mem_wb, ex_mem, id_ex = [False] * 4
         i = 0
         try:
             while True:
                 print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                       f"{'-'*45} PHASE {i} {'-'*45}{Style.RESET_ALL}")
-                Segmentation.write_back(mem_wb)
+                self.__segmentation.write_back(mem_wb)
                 aux = Segmentation.execute(id_ex)
                 mem_wb = self.__segmentation.memory(ex_mem)
                 ex_mem = aux
-                id_ex = Segmentation.decode(if_id)
+                id_ex = self.__segmentation.decode(if_id)
                 if_id = self.__segmentation.fetch()
                 i = i + 1
                 # If all the variables are empty, we break the loop
-                if (if_id is False and ex_mem is None
-                        and mem_wb is False and id_ex is None):
+                if (if_id is False and ex_mem is False
+                        and mem_wb is False and id_ex is False):
                     break
         except Exception as e:
             print(f"{Fore.LIGHTRED_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
