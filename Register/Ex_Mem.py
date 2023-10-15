@@ -31,9 +31,12 @@ class Ex_Mem:
               f"[EX_MEM]: Save result and details of operation code '{new_cod_op}'.")
 
 
-class Aux_Ex_Mem(Ex_Mem):
+class Aux_Ex_Mem:
     def __init__(self):
-        super().__init__()
+        self.__cod_op = None
+        self.__destination = None
+        self.__address_or_value = None
+        # HAY QUE BORRAR ESTA CLASE Y HACER QUE CIRCUIT TENGA UN AUX QUE ES UN EX_MEM
 
     def write(self, new_cod_op, new_destination, new_address_or_value):
         time.sleep(1)
@@ -42,9 +45,3 @@ class Aux_Ex_Mem(Ex_Mem):
         self.__address_or_value = new_address_or_value
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
               f"[AUX_EX_MEM]: Save result and details of operation code '{new_cod_op}'.")
-
-    # Need due to tunneling memory between EX and MEM phase
-    def aux_to_ex_mem(self):
-        cod_op_aux = self.__cod_op
-        if cod_op_aux is not None:
-            super().write(cod_op_aux, self.__destination, self.__address_or_value)

@@ -78,7 +78,9 @@ class ControlUnit:
                 aux = self.__segmentation.execute(id_ex)
                 mem_wb = self.__segmentation.memory(ex_mem)
                 ex_mem = aux
-                self.__circuit.get_aux_ex_mem().aux_to_ex_mem()
+                # Need due to tunneling memory between EX and MEM phase
+                aux_ex_mem = self.__circuit.get_aux_ex_mem()
+                self.__circuit.get_ex_mem().write(aux_ex_mem.)
                 id_ex = self.__segmentation.decode(if_id)
                 if_id = self.__segmentation.fetch()
                 i = i + 1
