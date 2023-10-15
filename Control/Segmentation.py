@@ -139,7 +139,7 @@ class Segmentation:
                                                   self.__circuit.get_basic_alu().subtract(int(rs), int(rt)))
                 return True
             elif cod_op == "li" or cod_op == "la" or cod_op == "sw":
-                self.__circuit.get_ex_mem().write(cod_op, rd, rs)
+                self.__circuit.get_aux_ex_mem().write(cod_op, rd, rs)
                 return True
         return False
 

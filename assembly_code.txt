@@ -8,5 +8,5 @@ Z:      .word 0
         .text
 main:
         # Print msg1
-        addi $t0,$t1,3
-        sub $t0,$t1,$t2
+	    li	    $v0,4		# print_string syscall code = 4
+	    la	    $a0,msg1

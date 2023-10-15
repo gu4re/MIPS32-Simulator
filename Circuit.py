@@ -2,7 +2,7 @@ from Register.PC import PC
 from Register.Mem_Wb import Mem_Wb
 from Register.If_Id import If_Id
 from Register.Id_Ex import Id_Ex
-from Register.Ex_Mem import Ex_Mem
+from Register.Ex_Mem import Ex_Mem, Aux_Ex_Mem
 from ALU.BasicALU import BasicALU
 
 
@@ -14,6 +14,7 @@ class Circuit:
         self.__id_ex = Id_Ex()
         self.__ex_mem = Ex_Mem()
         self.__basic_alu = BasicALU()
+        self.__aux_ex_mem = Aux_Ex_Mem()
 
     def get_pc(self):
         return self.__PC
@@ -32,3 +33,6 @@ class Circuit:
 
     def get_basic_alu(self):
         return self.__basic_alu
+
+    def get_aux_ex_mem(self):
+        return self.__aux_ex_mem
