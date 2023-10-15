@@ -8,13 +8,5 @@ Z:      .word 0
         .text
 main:
         # Print msg1
-	    li	    $v0,4		# print_string syscall code = 4
-	    la	    $a0,msg1
-	    li	    $v0,5		# read_int syscall code = 5
-	    addi	$t1,$t0,3	# syscall results returned in $v0
-	    li      $t0,25
-	    mul     $t0,$t1,$t1
-	    sw      $t0,Z
-	    sub     $t0,$t1,$t1
-	    li	    $t2,0		# initialize counter (i)
-	    li	    $t3,0		# initialize sum
+        addi $t0,$t1,3
+        sub $t0,$t1,$t2

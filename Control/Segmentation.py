@@ -5,12 +5,14 @@ from Memory.InstructionMemory import InstructionMemory
 from Memory.LabelAddressMemory import LabelAddressMemory
 from library.colorama import Fore, Style
 from Circuit import Circuit
+from Control.ShortCircuitUnit import ShortCircuitUnit
 
 
 class Segmentation:
 
-    def __init__(self, circuit: Circuit):
+    def __init__(self, circuit: Circuit, short_circuit_unit: ShortCircuitUnit):
         self.__circuit = circuit
+        self.__short_circuit_unit = short_circuit_unit
 
     def fetch(self):
         content_pc = self.__circuit.get_pc().read()
@@ -34,8 +36,9 @@ class Segmentation:
                   f"[ControlUnit]: Decoding instruction '{if_id}' ...")
             # Syscall path
             if if_id == "syscall":
-                self.__circuit.get_id_ex().write(if_id, rs=RegistersMemory.read("$v0"),
-                                                 rt=RegistersMemory.read("$a0"))
+                rt = self.__short_circuit_unit.check_ex_mem(["$v0", "$a0"]).get("$a0")
+                rs = self.__short_circuit_unit.check_mem_wb(["$v0", "$a0"]).get("$v0")
+                self.__circuit.get_id_ex().write(if_id, new_rs=rs, new_rt=rt)
                 return True
                 # TODO Need to resolve RAW provoked by syscall
             cod_op = if_id.split()[0]
@@ -82,6 +85,7 @@ class Segmentation:
     def memory(self, ex_mem):
         if ex_mem is not False:
             instruction_collection = ["lw", "la", "sw"]
+            ex_mem = self.__circuit.get_ex_mem()
             mem_wb = self.__circuit.get_mem_wb()
             if ex_mem.read_cod_op() not in instruction_collection:
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
@@ -99,17 +103,20 @@ class Segmentation:
 
     def execute(self, id_ex):
         if id_ex is not False:
+            id_ex = self.__circuit.get_id_ex()
             cod_op = id_ex.read_cod_op()
+            print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+                  f"[ControlUnit]: Executing '{cod_op}' instruction ...")
             if cod_op == "syscall":
                 v0_value = id_ex.read_rs()
                 # I/O operations
                 if int(v0_value) == 4:
                     a0_value = id_ex.read_rt()
-                    print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                    print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[SysCall/Output]: {a0_value}{Style.RESET_ALL}")
                     return False
                 elif int(v0_value) == 5:
-                    print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                    print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[SysCall/Input]: {Style.RESET_ALL}", end="")
                     inp = int(input(f"{Fore.YELLOW}{Style.BRIGHT}"))
                     print(f"{Style.RESET_ALL}", end="")
@@ -118,8 +125,6 @@ class Segmentation:
                 else:
                     raise Exception("SysCall wrong code ...")
                     # TODO missing SysCall code 1 implementation
-            print(f"{datetime.now().strftime('[%H:%M:%S]')}"
-                  f"[ControlUnit]: Executing '{cod_op}' instruction ...")
             rd, rs, rt = id_ex.read_rd(), id_ex.read_rs(), id_ex.read_rt()
             if cod_op == "addi":
                 self.__circuit.get_ex_mem().write(cod_op, rd,
@@ -134,11 +139,12 @@ class Segmentation:
                                                   self.__circuit.get_basic_alu().subtract(int(rs), int(rt)))
                 return True
             elif cod_op == "li" or cod_op == "la" or cod_op == "sw":
-                self.__circuit.get_ex_mem().write(cod_op, id_ex.read_rd(), id_ex.read_rs())
+                self.__circuit.get_ex_mem().write(cod_op, rd, rs)
                 return True
         return False
 
     def write_back(self, mem_wb):
         if mem_wb is not False:
-            RegistersMemory.write(self.__circuit.get_mem_wb().read_destination(),
-                                  self.__circuit.get_mem_wb().read_value())
+            mem_wb = self.__circuit.get_mem_wb()
+            RegistersMemory.write(mem_wb.read_destination(),
+                                  mem_wb.read_address_or_value())

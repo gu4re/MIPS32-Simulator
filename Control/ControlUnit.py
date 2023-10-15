@@ -22,8 +22,8 @@ class ControlUnit:
 
     def __init__(self):
         self.__circuit = Circuit()
-        self.__segmentation = Segmentation(self.__circuit)
-        self.__short_circuit_unit = ShortCircuitUnit(self.__circuit)
+        self.__segmentation = Segmentation(self.__circuit,
+                                           ShortCircuitUnit(self.__circuit))
 
     @staticmethod
     def interpret(argv):
