@@ -51,19 +51,23 @@ class Segmentation:
                     return False, True
                 self.__circuit.get_id_ex().write(if_id, new_rs=rs, new_rt=rt)
                 return True, None
-                # TODO Need to resolve RAW introducing a Bubble
             cod_op = if_id.split()[0]
             if len(if_id.split()[1].split(',')) == 3:
                 rd, rs, rt = if_id.split()[1].split(',')
                 if cod_op == "addi":
                     rs_value = RegistersMemory.read(rs)
-                    new_rs_value = self.__short_circuit_unit.check_ex_mem([rs],
-                                                                          [rs_value]).get(rs, None)
-                    new_rs_value = self.__short_circuit_unit.check_mem_wb([rs],
-                                                                          [new_rs_value]).get(rs, None)
+                    new_rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
+                                                                           [rs_value], "sw" if self.__circuit
+                                                                           .get_id_ex().read_cod_op() == "sw" else None)
+                                    .get(rs, None))
                     if new_rs_value is None:
-                        raise Exception(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
-                              f"[ControlUnit]: Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
+                        new_rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
+                                                                               [new_rs_value], "sw" if self.__circuit
+                                                                               .get_id_ex().read_cod_op() == "sw"
+                                                                               else None)
+                                        .get(rs, None))
+                        if new_rs_value is None:
+                            raise Exception(f"Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
                     print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[Decoder]: Operation code '{cod_op}', register of "
                           f"destiny '{rd}', first operand '{new_rs_value}', second operand "
@@ -71,23 +75,55 @@ class Segmentation:
                     self.__circuit.get_id_ex().write(cod_op, rd, new_rs_value, rt)
                     return True, None
                 else:
-                    rs, rt = RegistersMemory.read(rs), RegistersMemory.read(rt)
+                    rs_value, rt_value = RegistersMemory.read(rs), RegistersMemory.read(rt)
+                    rs_rt_values = self.__short_circuit_unit.check_ex_mem([rs, rt],
+                                                                          [rs_value, rt_value], "sw" if self.__circuit
+                                                                          .get_aux_ex_mem().read_cod_op() == "sw" else None)
+                    rs_value = rs_rt_values.get(rs, None)
+                    rt_value = rs_rt_values.get(rt, None)
+                    if rs_value is None:
+                        rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
+                                                                           [rs_value], "sw" if self.__circuit
+                                                                           .get_id_ex().get_aux_ex_mem() == "sw" else None)
+                                    .get(rs, None))
+                    if rt_value is None:
+                        rt_value = (self.__short_circuit_unit.check_mem_wb([rt],
+                                                                           [rt_value], "sw" if self.__circuit
+                                                                           .get_id_ex().get_aux_ex_mem() == "sw" else None)
+                        # TODO CHECK THIS
+                                    .get(rt, None))
+                    if rs_value is None or rt_value is None:
+                        raise Exception(f"Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                       f"[Decoder]: Operation code '{cod_op}', register of "
-                      f"destiny '{rd}', first operand '{rs}', second operand "
-                      f"'{rt}'")
-                self.__circuit.get_id_ex().write(cod_op, rd, rs, rt)
+                      f"destiny '{rd}', first operand '{rs_value}', second operand "
+                      f"'{rt_value}'")
+                self.__circuit.get_id_ex().write(cod_op, rd, rs_value, rt_value)
                 return True, None
                 # instruction, destiny, op1, op2
             elif len(if_id.split()[1].split(',')) == 2:
                 if cod_op == "sw":
                     rs, rd = if_id.split()[1].split(',')
-                    rs = RegistersMemory.read(rs)
+                    rs_value = RegistersMemory.read(rs)
+                    rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
+                                                                       [rs_value], "sw" if self.__circuit
+                                                                       .get_id_ex().read_cod_op() == "sw" else None)
+                                .get(rs, None))
+                    if rs_value is None:
+                        rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
+                                                                           [rs_value], "sw" if self.__circuit
+                                                                           .get_id_ex().read_cod_op() == "sw" else None)
+                                    .get(rs, None))
+                    if rs_value is None:
+                        print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                              f"[ControlUnit]: Register '{rs}' provoked a bubble. {Style.RESET_ALL}")
+                        return False, True
                     mem_address, which_mem = LabelAddressMemory.read(rd)
-                    rd = mem_address
                     if which_mem != 'D':
                         raise Exception(f"{datetime.now().strftime('[%H:%M:%S]')}"
                                         f"[ControlUnit]: Wrong memory access, aborting execution ...")
+                    self.__circuit.get_id_ex().write(cod_op, mem_address, rs_value)
+                    return True, None
                 elif cod_op == "la":
                     rd, rs = if_id.split()[1].split(',')
                     mem_address, which_mem = LabelAddressMemory.read(rs)
@@ -144,7 +180,7 @@ class Segmentation:
                           f"[SysCall/Input]: {Style.RESET_ALL}", end="")
                     inp = int(input(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}"))
                     print(f"{Style.RESET_ALL}", end="")
-                    self.__circuit.get_aux_ex_mem().write(cod_op, "$v0", inp)
+                    self.__circuit.get_aux_ex_mem().write(cod_op, "$v0", inp, True)
                     return True
                 else:
                     raise Exception("SysCall wrong code ...")
