@@ -56,7 +56,20 @@ class Segmentation:
             if len(if_id.split()[1].split(',')) == 3:
                 rd, rs, rt = if_id.split()[1].split(',')
                 if cod_op == "addi":
-                    rs = RegistersMemory.read(rs)
+                    rs_value = RegistersMemory.read(rs)
+                    new_rs_value = self.__short_circuit_unit.check_ex_mem([rs],
+                                                                          [rs_value]).get(rs, None)
+                    new_rs_value = self.__short_circuit_unit.check_mem_wb([rs],
+                                                                          [new_rs_value]).get(rs, None)
+                    if new_rs_value is None:
+                        raise Exception(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                              f"[ControlUnit]: Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
+                    print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+                          f"[Decoder]: Operation code '{cod_op}', register of "
+                          f"destiny '{rd}', first operand '{new_rs_value}', second operand "
+                          f"'{rt}'")
+                    self.__circuit.get_id_ex().write(cod_op, rd, new_rs_value, rt)
+                    return True, None
                 else:
                     rs, rt = RegistersMemory.read(rs), RegistersMemory.read(rt)
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
@@ -129,7 +142,7 @@ class Segmentation:
                 elif int(v0_value) == 5:
                     print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[SysCall/Input]: {Style.RESET_ALL}", end="")
-                    inp = int(input(f"{Fore.YELLOW}{Style.BRIGHT}"))
+                    inp = int(input(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}"))
                     print(f"{Style.RESET_ALL}", end="")
                     self.__circuit.get_aux_ex_mem().write(cod_op, "$v0", inp)
                     return True
@@ -139,15 +152,15 @@ class Segmentation:
             rd, rs, rt = id_ex.read_rd(), id_ex.read_rs(), id_ex.read_rt()
             if cod_op == "addi":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd,
-                                                      self.__circuit.get_basic_alu().add(int(rs), int(rt)))
+                                                      self.__circuit.get_basic_alu().add(int(rs), int(rt)), True)
                 return True
             elif cod_op == "mul":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd,
-                                                      self.__circuit.get_basic_alu().multiply(int(rs), int(rt)))
+                                                      self.__circuit.get_basic_alu().multiply(int(rs), int(rt)), True)
                 return True
             elif cod_op == "sub":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd,
-                                                      self.__circuit.get_basic_alu().subtract(int(rs), int(rt)))
+                                                      self.__circuit.get_basic_alu().subtract(int(rs), int(rt)), True)
                 return True
             elif cod_op == "li" or cod_op == "la" or cod_op == "sw":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd, rs, True)
