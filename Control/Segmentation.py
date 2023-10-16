@@ -36,11 +36,22 @@ class Segmentation:
                   f"[ControlUnit]: Decoding instruction '{if_id}' ...")
             # Syscall path
             if if_id == "syscall":
-                rt = self.__short_circuit_unit.check_ex_mem(["$v0", "$a0"]).get("$a0")
-                rs = self.__short_circuit_unit.check_mem_wb(["$v0", "$a0"]).get("$v0")
+                rt = RegistersMemory.read("$a0")
+                rs = RegistersMemory.read("$v0")
+                rs_rt = self.__short_circuit_unit.check_ex_mem(["$a0", "$v0"], [rt, rs])
+                rt = rs_rt.get("$a0", None)
+                rs = rs_rt.get("$v0", None)
+                rs_rt = self.__short_circuit_unit.check_mem_wb(["$a0", "$v0"], [rt, rs])
+                rt = rs_rt.get("$a0", None)
+                rs = rs_rt.get("$v0", None)
+                if rt is None or rs is None:
+                    print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                          f"[ControlUnit]: Register '{'$a0' if rt is None else '$v0'}' "
+                          f"provoked a bubble. {Style.RESET_ALL}")
+                    return False, True
                 self.__circuit.get_id_ex().write(if_id, new_rs=rs, new_rt=rt)
-                return True
-                # TODO Need to resolve RAW provoked by syscall
+                return True, None
+                # TODO Need to resolve RAW introducing a Bubble
             cod_op = if_id.split()[0]
             if len(if_id.split()[1].split(',')) == 3:
                 rd, rs, rt = if_id.split()[1].split(',')
@@ -53,7 +64,7 @@ class Segmentation:
                       f"destiny '{rd}', first operand '{rs}', second operand "
                       f"'{rt}'")
                 self.__circuit.get_id_ex().write(cod_op, rd, rs, rt)
-                return True
+                return True, None
                 # instruction, destiny, op1, op2
             elif len(if_id.split()[1].split(',')) == 2:
                 if cod_op == "sw":
@@ -77,10 +88,10 @@ class Segmentation:
                       f"[Decoder]: Operation code '{cod_op}', register of "
                       f"destiny '{rd}', first operand '{rs}'")
                 self.__circuit.get_id_ex().write(cod_op, rd, rs)
-                return True
+                return True, None
             # TODO: Needs comparison of jump here
             # TODO: Calculate address to jump and put a print simulating in EX
-        return False
+        return False, None
 
     def memory(self, ex_mem):
         if ex_mem is not False:
@@ -94,7 +105,7 @@ class Segmentation:
                 return True
             elif ex_mem.read_cod_op() == "la":
                 mem_wb.write(ex_mem.read_destination(), DataMemory.read(ex_mem.read_address_or_value()))
-                return False
+                return True
             elif ex_mem.read_cod_op() == "sw":
                 DataMemory.write(ex_mem.read_destination(), ex_mem.read_address_or_value())
                 return False
@@ -120,26 +131,26 @@ class Segmentation:
                           f"[SysCall/Input]: {Style.RESET_ALL}", end="")
                     inp = int(input(f"{Fore.YELLOW}{Style.BRIGHT}"))
                     print(f"{Style.RESET_ALL}", end="")
-                    self.__circuit.get_ex_mem().write(cod_op, "$v0", inp)
+                    self.__circuit.get_aux_ex_mem().write(cod_op, "$v0", inp)
                     return True
                 else:
                     raise Exception("SysCall wrong code ...")
                     # TODO missing SysCall code 1 implementation
             rd, rs, rt = id_ex.read_rd(), id_ex.read_rs(), id_ex.read_rt()
             if cod_op == "addi":
-                self.__circuit.get_ex_mem().write(cod_op, rd,
-                                                  self.__circuit.get_basic_alu().add(int(rs), int(rt)))
+                self.__circuit.get_aux_ex_mem().write(cod_op, rd,
+                                                      self.__circuit.get_basic_alu().add(int(rs), int(rt)))
                 return True
             elif cod_op == "mul":
-                self.__circuit.get_ex_mem().write(cod_op, rd,
-                                                  self.__circuit.get_basic_alu().multiply(int(rs), int(rt)))
+                self.__circuit.get_aux_ex_mem().write(cod_op, rd,
+                                                      self.__circuit.get_basic_alu().multiply(int(rs), int(rt)))
                 return True
             elif cod_op == "sub":
-                self.__circuit.get_ex_mem().write(cod_op, rd,
-                                                  self.__circuit.get_basic_alu().subtract(int(rs), int(rt)))
+                self.__circuit.get_aux_ex_mem().write(cod_op, rd,
+                                                      self.__circuit.get_basic_alu().subtract(int(rs), int(rt)))
                 return True
             elif cod_op == "li" or cod_op == "la" or cod_op == "sw":
-                self.__circuit.get_aux_ex_mem().write(cod_op, rd, rs)
+                self.__circuit.get_aux_ex_mem().write(cod_op, rd, rs, True)
                 return True
         return False
 

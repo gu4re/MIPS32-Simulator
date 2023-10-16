@@ -10,3 +10,4 @@ main:
         # Print msg1
 	    li	    $v0,4		# print_string syscall code = 4
 	    la	    $a0,msg1
+	    syscall

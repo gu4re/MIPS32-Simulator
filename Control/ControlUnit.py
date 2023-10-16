@@ -77,11 +77,15 @@ class ControlUnit:
                 self.__segmentation.write_back(mem_wb)
                 aux = self.__segmentation.execute(id_ex)
                 mem_wb = self.__segmentation.memory(ex_mem)
-                ex_mem = aux
                 # Need due to tunneling memory between EX and MEM phase
-                aux_ex_mem = self.__circuit.get_aux_ex_mem()
-                self.__circuit.get_ex_mem().write(aux_ex_mem.)
-                id_ex = self.__segmentation.decode(if_id)
+                ex_mem = aux
+                if ex_mem is not False:
+                    self.__circuit.get_ex_mem().write(self.__circuit.get_aux_ex_mem().read_cod_op(),
+                                                      self.__circuit.get_aux_ex_mem().read_destination(),
+                                                      self.__circuit.get_aux_ex_mem().read_address_or_value(True))
+                id_ex, exits_bubble = self.__segmentation.decode(if_id)
+                if exits_bubble is True:
+                    continue
                 if_id = self.__segmentation.fetch()
                 i = i + 1
                 # If all the variables are empty, we break the loop

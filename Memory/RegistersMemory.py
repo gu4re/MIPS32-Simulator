@@ -7,9 +7,9 @@ from datetime import datetime
 class RegistersMemory(Memory):
 
     __registers_memory = {
-        "$t": [0] * 10,
-        "$a": [0] * 4,
-        "$v": [0, 0]
+        "$t": [None] * 10,
+        "$a": [None] * 4,
+        "$v": [None, None]
     }
 
     @staticmethod
