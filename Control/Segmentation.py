@@ -58,12 +58,12 @@ class Segmentation:
                     rs_value = RegistersMemory.read(rs)
                     new_rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
                                                                            [rs_value], "sw" if self.__circuit
-                                                                           .get_id_ex().read_cod_op() == "sw" else None)
+                                                                           .get_ex_mem().read_cod_op() == "sw" else None)
                                     .get(rs, None))
                     if new_rs_value is None:
                         new_rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
                                                                                [new_rs_value], "sw" if self.__circuit
-                                                                               .get_id_ex().read_cod_op() == "sw"
+                                                                               .get_ex_mem().read_cod_op() == "sw"
                                                                                else None)
                                         .get(rs, None))
                         if new_rs_value is None:
@@ -78,22 +78,35 @@ class Segmentation:
                     rs_value, rt_value = RegistersMemory.read(rs), RegistersMemory.read(rt)
                     rs_rt_values = self.__short_circuit_unit.check_ex_mem([rs, rt],
                                                                           [rs_value, rt_value], "sw" if self.__circuit
-                                                                          .get_aux_ex_mem().read_cod_op() == "sw" else None)
+                                                                          .get_ex_mem().read_cod_op() == "sw" else None)
                     rs_value = rs_rt_values.get(rs, None)
                     rt_value = rs_rt_values.get(rt, None)
-                    if rs_value is None:
-                        rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
-                                                                           [rs_value], "sw" if self.__circuit
-                                                                           .get_id_ex().get_aux_ex_mem() == "sw" else None)
-                                    .get(rs, None))
-                    if rt_value is None:
-                        rt_value = (self.__short_circuit_unit.check_mem_wb([rt],
-                                                                           [rt_value], "sw" if self.__circuit
-                                                                           .get_id_ex().get_aux_ex_mem() == "sw" else None)
-                        # TODO CHECK THIS
-                                    .get(rt, None))
+                    rs_rt_values = self.__short_circuit_unit.check_mem_wb([rs, rt],
+                                                                          [rs_value, rt_value], "sw" if self.__circuit
+                                                                          .get_ex_mem().read_cod_op() == "sw" else None)
+                    rs_value = rs_rt_values.get(rs, None)
+                    rt_value = rs_rt_values.get(rt, None)
                     if rs_value is None or rt_value is None:
                         raise Exception(f"Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
+                    #rs_value, rt_value = RegistersMemory.read(rs), RegistersMemory.read(rt)
+                    #rs_rt_values = self.__short_circuit_unit.check_ex_mem([rs, rt],
+                    #                                                      [rs_value, rt_value], "sw" if self.__circuit
+                    #                                                      .get_ex_mem().read_cod_op() == "sw" else None)
+                    #rs_value = rs_rt_values.get(rs, None)
+                    #rt_value = rs_rt_values.get(rt, None)
+                    #if rs_value is None:
+                    #    rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
+                    #                                                       [rs_value], "sw" if self.__circuit
+                    #                                                       .get_ex_mem().read_cod_op() == "sw" else None)
+                    #                .get(rs, None))
+                    #if rt_value is None:
+                    #    rt_value = (self.__short_circuit_unit.check_mem_wb([rt],
+                    #                                                       [rt_value], "sw" if self.__circuit
+                    #                                                       .get_ex_mem().read_cod_op() == "sw" else None)
+                        # TODO CHECK THIS
+                    #                .get(rt, None))
+                    #if rs_value is None or rt_value is None:
+                    #    raise Exception(f"Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                       f"[Decoder]: Operation code '{cod_op}', register of "
                       f"destiny '{rd}', first operand '{rs_value}', second operand "
@@ -107,12 +120,12 @@ class Segmentation:
                     rs_value = RegistersMemory.read(rs)
                     rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
                                                                        [rs_value], "sw" if self.__circuit
-                                                                       .get_id_ex().read_cod_op() == "sw" else None)
+                                                                       .get_ex_mem().read_cod_op() == "sw" else None)
                                 .get(rs, None))
                     if rs_value is None:
                         rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
                                                                            [rs_value], "sw" if self.__circuit
-                                                                           .get_id_ex().read_cod_op() == "sw" else None)
+                                                                           .get_ex_mem().read_cod_op() == "sw" else None)
                                     .get(rs, None))
                     if rs_value is None:
                         print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
