@@ -7,6 +7,8 @@ from library.colorama import Fore, Style
 from Circuit import Circuit
 from Control.ShortCircuitUnit import ShortCircuitUnit
 
+import re
+
 
 class Segmentation:
 
@@ -47,24 +49,22 @@ class Segmentation:
                 if rt is None or rs is None:
                     print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[ControlUnit]: Register '{'$a0' if rt is None else '$v0'}' "
-                          f"provoked a bubble. {Style.RESET_ALL}")
+                          f"provoked a bubble so fetch is returning None. {Style.RESET_ALL}")
                     return False, True
                 self.__circuit.get_id_ex().write(if_id, new_rs=rs, new_rt=rt)
                 return True, None
             cod_op = if_id.split()[0]
-            if len(if_id.split()[1].split(',')) == 3:
-                rd, rs, rt = if_id.split()[1].split(',')
+            if len(re.split(r',\s*', if_id)) == 3:
+                rd, rs, rt = (re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1],
+                              re.split(r',\s*', if_id)[2])
                 if cod_op == "addi":
                     rs_value = RegistersMemory.read(rs)
                     new_rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
-                                                                           [rs_value], "sw" if self.__circuit
-                                                                           .get_ex_mem().read_cod_op() == "sw" else None)
+                                                                           [rs_value])
                                     .get(rs, None))
                     if new_rs_value is None:
                         new_rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
-                                                                               [new_rs_value], "sw" if self.__circuit
-                                                                               .get_ex_mem().read_cod_op() == "sw"
-                                                                               else None)
+                                                                               [new_rs_value])
                                         .get(rs, None))
                         if new_rs_value is None:
                             raise Exception(f"Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
@@ -77,36 +77,15 @@ class Segmentation:
                 else:
                     rs_value, rt_value = RegistersMemory.read(rs), RegistersMemory.read(rt)
                     rs_rt_values = self.__short_circuit_unit.check_ex_mem([rs, rt],
-                                                                          [rs_value, rt_value], "sw" if self.__circuit
-                                                                          .get_ex_mem().read_cod_op() == "sw" else None)
+                                                                          [rs_value, rt_value])
                     rs_value = rs_rt_values.get(rs, None)
                     rt_value = rs_rt_values.get(rt, None)
                     rs_rt_values = self.__short_circuit_unit.check_mem_wb([rs, rt],
-                                                                          [rs_value, rt_value], "sw" if self.__circuit
-                                                                          .get_ex_mem().read_cod_op() == "sw" else None)
+                                                                          [rs_value, rt_value])
                     rs_value = rs_rt_values.get(rs, None)
                     rt_value = rs_rt_values.get(rt, None)
                     if rs_value is None or rt_value is None:
                         raise Exception(f"Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
-                    #rs_value, rt_value = RegistersMemory.read(rs), RegistersMemory.read(rt)
-                    #rs_rt_values = self.__short_circuit_unit.check_ex_mem([rs, rt],
-                    #                                                      [rs_value, rt_value], "sw" if self.__circuit
-                    #                                                      .get_ex_mem().read_cod_op() == "sw" else None)
-                    #rs_value = rs_rt_values.get(rs, None)
-                    #rt_value = rs_rt_values.get(rt, None)
-                    #if rs_value is None:
-                    #    rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
-                    #                                                       [rs_value], "sw" if self.__circuit
-                    #                                                       .get_ex_mem().read_cod_op() == "sw" else None)
-                    #                .get(rs, None))
-                    #if rt_value is None:
-                    #    rt_value = (self.__short_circuit_unit.check_mem_wb([rt],
-                    #                                                       [rt_value], "sw" if self.__circuit
-                    #                                                       .get_ex_mem().read_cod_op() == "sw" else None)
-                        # TODO CHECK THIS
-                    #                .get(rt, None))
-                    #if rs_value is None or rt_value is None:
-                    #    raise Exception(f"Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                       f"[Decoder]: Operation code '{cod_op}', register of "
                       f"destiny '{rd}', first operand '{rs_value}', second operand "
@@ -114,18 +93,16 @@ class Segmentation:
                 self.__circuit.get_id_ex().write(cod_op, rd, rs_value, rt_value)
                 return True, None
                 # instruction, destiny, op1, op2
-            elif len(if_id.split()[1].split(',')) == 2:
+            elif len(re.split(r',\s*', if_id)) == 2:
                 if cod_op == "sw":
-                    rs, rd = if_id.split()[1].split(',')
+                    rs, rd = re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1]
                     rs_value = RegistersMemory.read(rs)
                     rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
-                                                                       [rs_value], "sw" if self.__circuit
-                                                                       .get_ex_mem().read_cod_op() == "sw" else None)
+                                                                       [rs_value])
                                 .get(rs, None))
                     if rs_value is None:
                         rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
-                                                                           [rs_value], "sw" if self.__circuit
-                                                                           .get_ex_mem().read_cod_op() == "sw" else None)
+                                                                           [rs_value])
                                     .get(rs, None))
                     if rs_value is None:
                         print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
@@ -138,14 +115,14 @@ class Segmentation:
                     self.__circuit.get_id_ex().write(cod_op, mem_address, rs_value)
                     return True, None
                 elif cod_op == "la":
-                    rd, rs = if_id.split()[1].split(',')
+                    rd, rs = re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1]
                     mem_address, which_mem = LabelAddressMemory.read(rs)
                     rs = mem_address
                     if which_mem != 'D':
                         raise Exception(f"{datetime.now().strftime('[%H:%M:%S]')}"
                                         f"[ControlUnit]: Wrong memory access, aborting execution ...")
                 else:
-                    rd, rs = if_id.split()[1].split(',')
+                    rd, rs = re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1]
                 print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                       f"[Decoder]: Operation code '{cod_op}', register of "
                       f"destiny '{rd}', first operand '{rs}'")

@@ -1,5 +1,4 @@
 from Circuit import Circuit
-from Memory.RegistersMemory import RegistersMemory
 from datetime import datetime
 from library.colorama import Fore, Style
 
@@ -10,12 +9,10 @@ class ShortCircuitUnit:
         self.__circuit = circuit
 
     @staticmethod
-    def __check(memory, registers_on_read, actual_values, cod_op=None):
+    def __check(memory, registers_on_read, actual_values):
         new_registers_on_read = {}
         mem = memory
         i = 0
-        destination = mem.read_destination()
-        print(f" destination: {destination} cod_op: {cod_op}")
         for register in registers_on_read:
             if register == mem.read_destination():
                 print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
@@ -30,8 +27,8 @@ class ShortCircuitUnit:
             i = i + 1
         return new_registers_on_read
 
-    def check_ex_mem(self, registers_on_read: list, actual_values: list, cod_op=None):
-        return self.__check(self.__circuit.get_ex_mem(), registers_on_read, actual_values, cod_op)
+    def check_ex_mem(self, registers_on_read: list, actual_values: list):
+        return self.__check(self.__circuit.get_ex_mem(), registers_on_read, actual_values)
 
-    def check_mem_wb(self, registers_on_read: list, actual_values: list, cod_op=None):
-        return self.__check(self.__circuit.get_mem_wb(), registers_on_read, actual_values, cod_op)
+    def check_mem_wb(self, registers_on_read: list, actual_values: list):
+        return self.__check(self.__circuit.get_mem_wb(), registers_on_read, actual_values)

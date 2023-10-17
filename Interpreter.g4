@@ -18,19 +18,19 @@ INTEGER: [0-9]+ ;
 SYSCALL: 'syscall' ;
 
 /********* R Operations *********/
-fragment MUL:   'mul' WS '$'[atv][0-9]',''$'[atv][0-9]',''$'[atv][0-9] ;
-fragment SUB:   'sub' WS '$'[atv][0-9]',''$'[atv][0-9]',''$'[atv][0-9] ;
-fragment ADDI:  'addi' WS '$'[atv][0-9]',''$'[atv][0-9]','[0-9]+ ;
-fragment ADD:   'add' WS '$'[atv][0-9]',''$'[atv][0-9]',''$'[atv][0-9] ;
+fragment MUL:   'mul' WS '$'[atv][0-9]','WS*'$'[atv][0-9]','WS*'$'[atv][0-9] ;
+fragment SUB:   'sub' WS '$'[atv][0-9]','WS*'$'[atv][0-9]','WS*'$'[atv][0-9] ;
+fragment ADDI:  'addi' WS '$'[atv][0-9]','WS*'$'[atv][0-9]','WS*[0-9]+ ;
+fragment ADD:   'add' WS '$'[atv][0-9]','WS*'$'[atv][0-9]','WS*'$'[atv][0-9] ;
 
 R_OPERATION: MUL | SUB | ADDI | ADD ;
 
 /********* I Operations *********/
-fragment BEQ:   'beq' WS '$'[atv][0-9]',''$'[atv][0-9]','[a-zA-Z0-9]+ ;
-fragment LI:    'li' WS '$'[atv][0-9]','[0-9]+ ;
-fragment LA:    'la' WS '$'[atv][0-9]','[a-zA-Z0-9]+ ;
-fragment LW:    'lw' WS '$'[atv][0-9]','[a-zA-Z0-9]+ ;
-fragment SW:    'sw' WS '$'[atv][0-9]','[a-zA-Z0-9]+ ;
+fragment BEQ:   'beq' WS '$'[atv][0-9]','WS*'$'[atv][0-9]','WS*[a-zA-Z0-9]+ ;
+fragment LI:    'li' WS '$'[atv][0-9]',' WS* [0-9]+ ;
+fragment LA:    'la' WS '$'[atv][0-9]','WS*[a-zA-Z0-9]+ ;
+fragment LW:    'lw' WS '$'[atv][0-9]','WS*[a-zA-Z0-9]+ ;
+fragment SW:    'sw' WS '$'[atv][0-9]','WS*[a-zA-Z0-9]+ ;
 
 I_OPERATION: BEQ | LI | LA | LW | SW ;
 
