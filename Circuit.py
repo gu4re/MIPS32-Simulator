@@ -4,6 +4,7 @@ from Register.If_Id import If_Id
 from Register.Id_Ex import Id_Ex
 from Register.Ex_Mem import Ex_Mem
 from ALU.BasicALU import BasicALU
+from ALU.ConditionalALU import ConditionalALU
 
 
 class Circuit:
@@ -15,6 +16,7 @@ class Circuit:
         self.__ex_mem = Ex_Mem()
         self.__aux_ex_mem = Ex_Mem()
         self.__basic_alu = BasicALU()
+        self.__conditional_alu = ConditionalALU()
 
     def get_pc(self):
         return self.__PC
@@ -36,3 +38,6 @@ class Circuit:
 
     def get_aux_ex_mem(self):
         return self.__aux_ex_mem
+
+    def get_conditional_alu(self):
+        return self.__conditional_alu

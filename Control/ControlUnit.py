@@ -83,6 +83,8 @@ class ControlUnit:
                     self.__circuit.get_ex_mem().write(self.__circuit.get_aux_ex_mem().read_cod_op(),
                                                       self.__circuit.get_aux_ex_mem().read_destination(),
                                                       self.__circuit.get_aux_ex_mem().read_address_or_value(True))
+                else:
+                    self.__circuit.get_ex_mem().clear()
                 id_ex, exits_bubble = self.__segmentation.decode(if_id)
                 if exits_bubble is True:
                     continue

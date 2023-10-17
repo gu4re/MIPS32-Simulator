@@ -16,7 +16,8 @@ class ShortCircuitUnit:
         for register in registers_on_read:
             if register == mem.read_destination():
                 print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
-                      f"[ShortCircuitUnit]: Register '{register}' provoked a short-circuit. {Style.RESET_ALL}")
+                      f"[ShortCircuitUnit]: Register '{register}' provoked a short-circuit in "
+                      f"{type(mem).__name__.upper()}. {Style.RESET_ALL}")
                 address_or_value = mem.read_address_or_value()
                 if str(address_or_value).startswith("0x"):
                     new_registers_on_read[register] = None

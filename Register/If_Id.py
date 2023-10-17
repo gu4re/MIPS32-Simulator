@@ -1,5 +1,5 @@
 import time
-
+from datetime import datetime
 
 class If_Id:
     def __init__(self):
@@ -12,3 +12,8 @@ class If_Id:
     def write_instruction(self, new_instruction):
         time.sleep(1)
         self.__instruction = new_instruction
+
+    def clear(self):
+        time.sleep(1)
+        self.__instruction = None
+        print(f"{datetime.now().strftime('[%H:%M:%S]')}[IF_ID]: Clear memory due to 'None' received.")

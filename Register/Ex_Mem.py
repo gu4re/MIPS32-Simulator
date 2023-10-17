@@ -29,3 +29,14 @@ class Ex_Mem:
         self.__address_or_value = new_address_or_value
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
               f"[{'EX_MEM/AUX' if is_aux else 'EX_MEM'}]: Save result and details of operation code '{new_cod_op}'.")
+
+    def clear(self, is_aux=False):
+        time.sleep(1)
+        self.__cod_op = None
+        self.__destination = None
+        self.__address_or_value = None
+        print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+              f"[{'EX_MEM/AUX' if is_aux else 'EX_MEM'}]: Clear memory due to 'None' received.")
+
+
+

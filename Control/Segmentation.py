@@ -24,6 +24,7 @@ class Segmentation:
         if new_instruction is None:
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[Fetcher]: No more instructions left!")
+            self.__circuit.get_if_id().clear()
             return False
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
               f"[Fetcher]: Instruction read is '{new_instruction}'")
@@ -49,7 +50,7 @@ class Segmentation:
                 if rt is None or rs is None:
                     print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[ControlUnit]: Register '{'$a0' if rt is None else '$v0'}' "
-                          f"provoked a bubble so fetch is returning None. {Style.RESET_ALL}")
+                          f"provoked a bubble so Fetcher is returning None. {Style.RESET_ALL}")
                     return False, True
                 self.__circuit.get_id_ex().write(if_id, new_rs=rs, new_rt=rt)
                 return True, None
@@ -57,6 +58,29 @@ class Segmentation:
             if len(re.split(r',\s*', if_id)) == 3:
                 rd, rs, rt = (re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1],
                               re.split(r',\s*', if_id)[2])
+                if cod_op == "beq":
+                    rd_value, rs_value = RegistersMemory.read(rd), RegistersMemory.read(rs)
+                    rd_rs_values = self.__short_circuit_unit.check_ex_mem([rd, rs],
+                                                                          [rd_value, rs_value])
+                    rd_value = rd_rs_values.get(rd, None)
+                    rs_value = rd_rs_values.get(rs, None)
+                    rd_rs_values = self.__short_circuit_unit.check_mem_wb([rd, rs],
+                                                                          [rd_value, rs_value])
+                    rd_value = rd_rs_values.get(rd, None)
+                    rs_value = rd_rs_values.get(rs, None)
+                    if rd_value is None or rs_value is None:
+                        raise Exception(f"Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
+                    jump_on = self.__circuit.get_conditional_alu().compare(rd_value, rs_value)
+                    if jump_on:
+                        print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+                              f"[Decoder]: Operation code '{cod_op}', with "
+                              f"destiny '{rd}', will be effective")
+                    else:
+                        print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+                              f"[Decoder]: Operation code '{cod_op}', with "
+                              f"destiny '{rd}', will NOT be effective")
+                    self.__circuit.get_id_ex().write(cod_op, rt, jump_on=jump_on)
+                    return True, None
                 if cod_op == "addi":
                     rs_value = RegistersMemory.read(rs)
                     new_rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
@@ -114,7 +138,7 @@ class Segmentation:
                                         f"[ControlUnit]: Wrong memory access, aborting execution ...")
                     self.__circuit.get_id_ex().write(cod_op, mem_address, rs_value)
                     return True, None
-                elif cod_op == "la":
+                elif cod_op == "la" or cod_op == "lw":
                     rd, rs = re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1]
                     mem_address, which_mem = LabelAddressMemory.read(rs)
                     rs = mem_address
@@ -129,7 +153,7 @@ class Segmentation:
                 self.__circuit.get_id_ex().write(cod_op, rd, rs)
                 return True, None
             # TODO: Needs comparison of jump here
-            # TODO: Calculate address to jump and put a print simulating in EX
+        self.__circuit.get_id_ex().clear()
         return False, None
 
     def memory(self, ex_mem):
@@ -142,16 +166,17 @@ class Segmentation:
                       f"[DataMemory]: Ignoring '{ex_mem.read_cod_op()}' instruction ...")
                 mem_wb.write(ex_mem.read_destination(), ex_mem.read_address_or_value())
                 return True
-            elif ex_mem.read_cod_op() == "la":
+            elif ex_mem.read_cod_op() == "la" or ex_mem.read_cod_op() == "lw":
                 mem_wb.write(ex_mem.read_destination(), DataMemory.read(ex_mem.read_address_or_value()))
                 return True
             elif ex_mem.read_cod_op() == "sw":
                 DataMemory.write(ex_mem.read_destination(), ex_mem.read_address_or_value())
                 return False
-            # TODO: Needs implementation of lw
+        self.__circuit.get_mem_wb().clear()
         return False
 
     def execute(self, id_ex):
+        # TODO: Calculate address to jump and put a print simulating in EX
         if id_ex is not False:
             id_ex = self.__circuit.get_id_ex()
             cod_op = id_ex.read_cod_op()
@@ -160,7 +185,7 @@ class Segmentation:
             if cod_op == "syscall":
                 v0_value = id_ex.read_rs()
                 # I/O operations
-                if int(v0_value) == 4:
+                if int(v0_value) == 4 or int(v0_value) == 1:
                     a0_value = id_ex.read_rt()
                     print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[SysCall/Output]: {a0_value}{Style.RESET_ALL}")
@@ -170,13 +195,21 @@ class Segmentation:
                           f"[SysCall/Input]: {Style.RESET_ALL}", end="")
                     inp = int(input(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}"))
                     print(f"{Style.RESET_ALL}", end="")
+                    # Avoid infinite loop
+                    if inp == 0 or inp == 1:
+                        raise Exception("Expected number above 1. Aborting program to avoid infinite loop ...")
                     self.__circuit.get_aux_ex_mem().write(cod_op, "$v0", inp, True)
                     return True
                 else:
                     raise Exception("SysCall wrong code ...")
-                    # TODO missing SysCall code 1 implementation
+            if cod_op == "beq":
+                if id_ex.read_jump_on():
+                    print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                          f"[ControlUnit]: Address calculated to jump ... {Style.RESET_ALL}")
+                    address_to_go = LabelAddressMemory.read(id_ex.read_rd())
+                    # TODO Check if address read is from instruction memory
             rd, rs, rt = id_ex.read_rd(), id_ex.read_rs(), id_ex.read_rt()
-            if cod_op == "addi":
+            if cod_op == "addi" or cod_op == "add":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd,
                                                       self.__circuit.get_basic_alu().add(int(rs), int(rt)), True)
                 return True
@@ -188,9 +221,10 @@ class Segmentation:
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd,
                                                       self.__circuit.get_basic_alu().subtract(int(rs), int(rt)), True)
                 return True
-            elif cod_op == "li" or cod_op == "la" or cod_op == "sw":
+            elif cod_op == "li" or cod_op == "la" or cod_op == "sw" or cod_op == "lw":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd, rs, True)
                 return True
+        self.__circuit.get_aux_ex_mem().clear(True)
         return False
 
     def write_back(self, mem_wb):
