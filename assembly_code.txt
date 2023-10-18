@@ -1,6 +1,9 @@
+# New little changes not in previous versions
+# [17/10/2023] Modified msg1 to inform N > 1 to avoid infinite loop
+# [18/10/2023] Modified $t0 initial value from 25 to 5 so the program is not too long
+# [18/10/2023] Modified beq instruction to bge avoiding infinite loop
 # Various labels
         .data
-# [17/10/2023] Modified msg1 to inform N > 1 to avoid infinite loop
 msg1:	.asciiz	"Number of integers (N > 1)? "
 msg2:   .asciiz "Number found: "
 Z:      .word 0
@@ -16,7 +19,7 @@ main:
 	    li	    $v0,5		# read_int syscall code = 5
 	    syscall
 	    addi	$t1, $v0, 0	# syscall results returned in $v0
-	    li      $t0,25
+	    li      $t0,5
 	    mul     $t0, $t1,$t0
 	    sw      $t0,Z
 	    sub     $t0,$t0,$t1
@@ -27,6 +30,8 @@ main:
 loop:
         addi    $t2,$t2,1 # i = i + 1
         add     $t3,$t3,$t2 # sum = sum + i
+        bge     $t0,$t3,exit # if value = sum of iterations
+        j       loop
 # Exit routine found - print msg2
 exit:
         li	    $v0,4		# print_string syscall code = 4

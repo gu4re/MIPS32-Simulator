@@ -1,3 +1,5 @@
+import time
+
 from Memory.RegistersMemory import RegistersMemory
 from datetime import datetime
 from Memory.DataMemory import DataMemory
@@ -33,7 +35,8 @@ class Segmentation:
         return True
 
     def decode(self, if_id):
-        if if_id is not False:
+        if (if_id is not False
+                and self.__circuit.get_if_id().read_instruction() is not None):
             if_id = self.__circuit.get_if_id().read_instruction()
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[ControlUnit]: Decoding instruction '{if_id}' ...")
@@ -55,10 +58,17 @@ class Segmentation:
                 self.__circuit.get_id_ex().write(if_id, new_rs=rs, new_rt=rt)
                 return True, None
             cod_op = if_id.split()[0]
+            if cod_op == "j":
+                rd = re.split(r',\s*', if_id)[0].split()[1]
+                print(f"{datetime.now().strftime('[%H:%M:%S]')}"
+                      f"[Decoder]: Operation code '{cod_op}', with "
+                      f"destiny '{rd}', will be effective.")
+                self.__circuit.get_id_ex().write(cod_op, rd, jump_on=True)
+                return True, None
             if len(re.split(r',\s*', if_id)) == 3:
                 rd, rs, rt = (re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1],
                               re.split(r',\s*', if_id)[2])
-                if cod_op == "beq":
+                if cod_op == "bge":
                     rd_value, rs_value = RegistersMemory.read(rd), RegistersMemory.read(rs)
                     rd_rs_values = self.__short_circuit_unit.check_ex_mem([rd, rs],
                                                                           [rd_value, rs_value])
@@ -74,11 +84,11 @@ class Segmentation:
                     if jump_on:
                         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                               f"[Decoder]: Operation code '{cod_op}', with "
-                              f"destiny '{rd}', will be effective")
+                              f"destiny '{rt}', will be effective.")
                     else:
                         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                               f"[Decoder]: Operation code '{cod_op}', with "
-                              f"destiny '{rd}', will NOT be effective")
+                              f"destiny '{rt}', will NOT be effective.")
                     self.__circuit.get_id_ex().write(cod_op, rt, jump_on=jump_on)
                     return True, None
                 if cod_op == "addi":
@@ -152,7 +162,6 @@ class Segmentation:
                       f"destiny '{rd}', first operand '{rs}'")
                 self.__circuit.get_id_ex().write(cod_op, rd, rs)
                 return True, None
-            # TODO: Needs comparison of jump here
         self.__circuit.get_id_ex().clear()
         return False, None
 
@@ -176,12 +185,12 @@ class Segmentation:
         return False
 
     def execute(self, id_ex):
-        # TODO: Calculate address to jump and put a print simulating in EX
         if id_ex is not False:
             id_ex = self.__circuit.get_id_ex()
             cod_op = id_ex.read_cod_op()
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[ControlUnit]: Executing '{cod_op}' instruction ...")
+            rd, rs, rt = id_ex.read_rd(), id_ex.read_rs(), id_ex.read_rt()
             if cod_op == "syscall":
                 v0_value = id_ex.read_rs()
                 # I/O operations
@@ -202,14 +211,23 @@ class Segmentation:
                     return True
                 else:
                     raise Exception("SysCall wrong code ...")
-            if cod_op == "beq":
-                if id_ex.read_jump_on():
+            elif cod_op == "bge" or cod_op == "j":
+                if id_ex.read_jump_on() is True:
+                    time.sleep(1)
                     print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
-                          f"[ControlUnit]: Address calculated to jump ... {Style.RESET_ALL}")
-                    address_to_go = LabelAddressMemory.read(id_ex.read_rd())
-                    # TODO Check if address read is from instruction memory
-            rd, rs, rt = id_ex.read_rd(), id_ex.read_rs(), id_ex.read_rt()
-            if cod_op == "addi" or cod_op == "add":
+                          f"[ControlUnit]: Address calculated to jump.{Style.RESET_ALL}")
+                    address_to_go, which_mem = LabelAddressMemory.read(id_ex.read_rd())
+                    if which_mem != 'I':
+                        raise Exception(f"{datetime.now().strftime('[%H:%M:%S]')}"
+                                        f"[ControlUnit]: Wrong memory access, aborting execution ...")
+                    # Need a correction changing PC registry so (address_to_go - 4 + 4)
+                    self.__circuit.get_pc().update(hex(int(address_to_go, 16) - 4))
+                    self.__circuit.get_id_ex().clear()
+                    self.__circuit.get_if_id().clear()
+                    print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                          f"[ControlUnit]: Clear registries and update PC.{Style.RESET_ALL}")
+                return False, True
+            elif cod_op == "addi" or cod_op == "add":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd,
                                                       self.__circuit.get_basic_alu().add(int(rs), int(rt)), True)
                 return True

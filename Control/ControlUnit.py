@@ -74,6 +74,7 @@ class ControlUnit:
             while True:
                 print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                       f"{'-'*45} PHASE {i} {'-'*45}{Style.RESET_ALL}")
+                i = i + 1
                 self.__segmentation.write_back(mem_wb)
                 aux = self.__segmentation.execute(id_ex)
                 mem_wb = self.__segmentation.memory(ex_mem)
@@ -89,7 +90,6 @@ class ControlUnit:
                 if exits_bubble is True:
                     continue
                 if_id = self.__segmentation.fetch()
-                i = i + 1
                 # If all the variables are empty, we break the loop
                 if (if_id is False and ex_mem is False
                         and mem_wb is False and id_ex is False):

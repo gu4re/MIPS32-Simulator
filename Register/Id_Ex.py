@@ -8,7 +8,7 @@ class Id_Ex:
         self.__rd = None
         self.__rs = None
         self.__rt = None
-        self.__jump_on = False
+        self.__jump_on = None
 
     def read_cod_op(self):
         time.sleep(1)
@@ -36,8 +36,9 @@ class Id_Ex:
         time.sleep(1)
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
               f"[ID_EX]: Read jump_on flag '{self.__jump_on}'.")
+        return self.__jump_on
 
-    def write(self, new_cod_op, new_rd=None, new_rs=None, new_rt=None, jump_on=False):
+    def write(self, new_cod_op, new_rd=None, new_rs=None, new_rt=None, jump_on=None):
         time.sleep(1)
         self.__cod_op = new_cod_op
         self.__rd = new_rd

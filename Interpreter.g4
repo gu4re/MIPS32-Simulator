@@ -26,13 +26,13 @@ fragment ADD:   'add' WS '$'[atv][0-9]','WS*'$'[atv][0-9]','WS*'$'[atv][0-9] ;
 R_OPERATION: MUL | SUB | ADDI | ADD ;
 
 /********* I Operations *********/
-fragment BEQ:   'beq' WS '$'[atv][0-9]','WS*'$'[atv][0-9]','WS*[a-zA-Z0-9]+ ;
+fragment BGE:   'bge' WS '$'[atv][0-9]','WS*'$'[atv][0-9]','WS*[a-zA-Z0-9]+ ;
 fragment LI:    'li' WS '$'[atv][0-9]',' WS* [0-9]+ ;
 fragment LA:    'la' WS '$'[atv][0-9]','WS*[a-zA-Z0-9]+ ;
 fragment LW:    'lw' WS '$'[atv][0-9]','WS*[a-zA-Z0-9]+ ;
 fragment SW:    'sw' WS '$'[atv][0-9]','WS*[a-zA-Z0-9]+ ;
 
-I_OPERATION: BEQ | LI | LA | LW | SW ;
+I_OPERATION: BGE | LI | LA | LW | SW ;
 
 /********* J Operations *********/
 J_OPERATION: 'j' WS [A-Za-z]+ ;
