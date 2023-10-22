@@ -32,12 +32,11 @@ class ControlUnit:
         original_stderr = sys.stderr
         compilation_errors_stream = StringIO()
         sys.stderr = compilation_errors_stream
-        # Interpret the file
+        # Interpret the file to load the circuit
         interpret_context = InterpreterParser(
             CommonTokenStream(
                 InterpreterLexer(
                     FileStream(argv[1])))).interpret()
-        # TODO should abstract Interpreter to another class
         time.sleep(0.2)
         # Establish the stderr to default
         sys.stderr = original_stderr
@@ -59,7 +58,7 @@ class ControlUnit:
             print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[ControlUnit]: Printing Memories ... ")
             time.sleep(0.1)
-            # Overrides circuit from interpreter to control unit class
+            # Overrides circuit from interpreter context to control unit class
             self.override_circuit(interpret_context.circuit)
             print()
             self.__circuit.get_data_memory().print()
