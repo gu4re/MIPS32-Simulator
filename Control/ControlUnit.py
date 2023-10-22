@@ -6,16 +6,10 @@ from gen.InterpreterLexer import InterpreterLexer
 from gen.InterpreterParser import InterpreterParser
 from library.antlr4 import *
 from io import StringIO
-from Memory.DataMemory import DataMemory
-from Memory.InstructionMemory import InstructionMemory
-from Memory.LabelAddressMemory import LabelAddressMemory
 from library.colorama import Fore, Style
 from Control.Segmentation import Segmentation
 from Control.ShortCircuitUnit import ShortCircuitUnit
 from Circuit import Circuit
-
-# TODO Needs Forwarding unit class to solve RAWs
-# TODO Needs a Circuit Class to group all elements to solve RAWs
 
 
 class ControlUnit:
@@ -25,9 +19,13 @@ class ControlUnit:
         self.__segmentation = Segmentation(self.__circuit,
                                            ShortCircuitUnit(self.__circuit))
 
-    @staticmethod
-    def interpret(argv):
-        time.sleep(2)
+    # Used only once at the beginning to override the empty Circuit with the one which has read data
+    def override_circuit(self, circuit):
+        self.__circuit = circuit
+        self.__segmentation = Segmentation(circuit, ShortCircuitUnit(circuit))
+
+    def interpret(self, argv):
+        time.sleep(0.2)
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
               f"[Interpreter]: Reading input file ({argv[1]}) ...")
         # Save the original stderr and redirects the actual one into a stream
@@ -35,12 +33,12 @@ class ControlUnit:
         compilation_errors_stream = StringIO()
         sys.stderr = compilation_errors_stream
         # Interpret the file
-        InterpreterParser(
+        interpret_context = InterpreterParser(
             CommonTokenStream(
                 InterpreterLexer(
                     FileStream(argv[1])))).interpret()
         # TODO should abstract Interpreter to another class
-        time.sleep(2)
+        time.sleep(0.2)
         # Establish the stderr to default
         sys.stderr = original_stderr
         # Check if there were any interpreted errors
@@ -57,14 +55,16 @@ class ControlUnit:
         # Otherwise we fill the memories and start the circuit
         else:
             compilation_errors_stream.close()
-            time.sleep(2)
+            time.sleep(0.2)
             print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[ControlUnit]: Printing Memories ... ")
-            time.sleep(1)
+            time.sleep(0.1)
+            # Overrides circuit from interpreter to control unit class
+            self.override_circuit(interpret_context.circuit)
             print()
-            DataMemory.print()
-            InstructionMemory.print()
-            LabelAddressMemory.print()
+            self.__circuit.get_data_memory().print()
+            self.__circuit.get_instruction_memory().print()
+            self.__circuit.get_label_address_memory().print()
             print(f"{Style.RESET_ALL}")
 
     def start(self):
@@ -73,7 +73,7 @@ class ControlUnit:
         try:
             while True:
                 print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
-                      f"{'-'*45} PHASE {i} {'-'*45}{Style.RESET_ALL}")
+                      f"{'-'*45} ITERATION {i} {'-'*45}{Style.RESET_ALL}")
                 i = i + 1
                 self.__segmentation.write_back(mem_wb)
                 aux = self.__segmentation.execute(id_ex)

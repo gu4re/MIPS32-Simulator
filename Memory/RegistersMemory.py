@@ -5,36 +5,32 @@ from datetime import datetime
 
 
 class RegistersMemory(Memory):
+    def __init__(self):
+        self.__registers_memory = {
+            "$t": [None] * 10,
+            "$a": [None] * 4,
+            "$v": [None, None]
+        }
 
-    __registers_memory = {
-        "$t": [None] * 10,
-        "$a": [None] * 4,
-        "$v": [None, None]
-    }
-
-    @staticmethod
-    def write(register, value):
-        time.sleep(1)
+    def write(self, register, value):
+        time.sleep(0.1)
         register_type, register_num = register[:-1], int(register[-1])
-        RegistersMemory.__registers_memory[register_type][register_num] = value
+        self.__registers_memory[register_type][register_num] = value
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
               f"[RegistersMemory]: Value '{value}' loaded at '{register}'.")
 
-    @staticmethod
-    def read(register):
-        time.sleep(1)
+    def read(self, register):
+        time.sleep(0.1)
         register_type, register_num = register[:-1], int(register[-1])
         print(f"{datetime.now().strftime('[%H:%M:%S]')}"
               f"[RegistersMemory]: Read register '{register}'.")
-        return RegistersMemory.__registers_memory[register_type][register_num]
+        return self.__registers_memory[register_type][register_num]
 
-    @staticmethod
-    def print():
-        for key, value in RegistersMemory.__registers_memory.items():
+    def print(self):
+        for key, value in self.__registers_memory.items():
             for v in value:
                 print(f"Key: {key}, Value: {v}")
 
     # Not necessary in this case
-    @staticmethod
-    def generate_address():
+    def generate_address(self):
         pass

@@ -5,6 +5,10 @@ from Register.Id_Ex import Id_Ex
 from Register.Ex_Mem import Ex_Mem
 from ALU.BasicALU import BasicALU
 from ALU.ConditionalALU import ConditionalALU
+from Memory.DataMemory import DataMemory
+from Memory.InstructionMemory import InstructionMemory
+from Memory.LabelAddressMemory import LabelAddressMemory
+from Memory.RegistersMemory import RegistersMemory
 
 
 class Circuit:
@@ -17,6 +21,10 @@ class Circuit:
         self.__aux_ex_mem = Ex_Mem()
         self.__basic_alu = BasicALU()
         self.__conditional_alu = ConditionalALU()
+        self.__data_memory = DataMemory()
+        self.__instruction_memory = InstructionMemory()
+        self.__label_address_memory = LabelAddressMemory()
+        self.__registers_memory = RegistersMemory()
 
     def get_pc(self):
         return self.__PC
@@ -41,3 +49,15 @@ class Circuit:
 
     def get_conditional_alu(self):
         return self.__conditional_alu
+
+    def get_data_memory(self):
+        return self.__data_memory
+
+    def get_instruction_memory(self):
+        return self.__instruction_memory
+
+    def get_label_address_memory(self):
+        return self.__label_address_memory
+
+    def get_registers_memory(self):
+        return self.__registers_memory

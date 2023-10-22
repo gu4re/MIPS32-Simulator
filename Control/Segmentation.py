@@ -1,10 +1,6 @@
 import time
 
-from Memory.RegistersMemory import RegistersMemory
 from datetime import datetime
-from Memory.DataMemory import DataMemory
-from Memory.InstructionMemory import InstructionMemory
-from Memory.LabelAddressMemory import LabelAddressMemory
 from library.colorama import Fore, Style
 from Circuit import Circuit
 from Control.ShortCircuitUnit import ShortCircuitUnit
@@ -22,7 +18,7 @@ class Segmentation:
         content_pc = self.__circuit.get_pc().read()
         print(f"{datetime.now().strftime('[%H:%M:%S]')}[ControlUnit]:"
               f" Fetching PC ...")
-        new_instruction = InstructionMemory.read(content_pc)
+        new_instruction = self.__circuit.get_instruction_memory().read(content_pc)
         if new_instruction is None:
             print(f"{datetime.now().strftime('[%H:%M:%S]')}"
                   f"[Fetcher]: No more instructions left!")
@@ -42,8 +38,8 @@ class Segmentation:
                   f"[ControlUnit]: Decoding instruction '{if_id}' ...")
             # Syscall path
             if if_id == "syscall":
-                rt = RegistersMemory.read("$a0")
-                rs = RegistersMemory.read("$v0")
+                rt = self.__circuit.get_registers_memory().read("$a0")
+                rs = self.__circuit.get_registers_memory().read("$v0")
                 rs_rt = self.__short_circuit_unit.check_ex_mem(["$a0", "$v0"], [rt, rs])
                 rt = rs_rt.get("$a0", None)
                 rs = rs_rt.get("$v0", None)
@@ -69,7 +65,8 @@ class Segmentation:
                 rd, rs, rt = (re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1],
                               re.split(r',\s*', if_id)[2])
                 if cod_op == "bge":
-                    rd_value, rs_value = RegistersMemory.read(rd), RegistersMemory.read(rs)
+                    rd_value, rs_value = (self.__circuit.get_registers_memory().read(rd),
+                                          self.__circuit.get_registers_memory().read(rs))
                     rd_rs_values = self.__short_circuit_unit.check_ex_mem([rd, rs],
                                                                           [rd_value, rs_value])
                     rd_value = rd_rs_values.get(rd, None)
@@ -92,7 +89,7 @@ class Segmentation:
                     self.__circuit.get_id_ex().write(cod_op, rt, jump_on=jump_on)
                     return True, None
                 if cod_op == "addi":
-                    rs_value = RegistersMemory.read(rs)
+                    rs_value = self.__circuit.get_registers_memory().read(rs)
                     new_rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
                                                                            [rs_value])
                                     .get(rs, None))
@@ -109,7 +106,8 @@ class Segmentation:
                     self.__circuit.get_id_ex().write(cod_op, rd, new_rs_value, rt)
                     return True, None
                 else:
-                    rs_value, rt_value = RegistersMemory.read(rs), RegistersMemory.read(rt)
+                    rs_value, rt_value = (self.__circuit.get_registers_memory().read(rs),
+                                          self.__circuit.get_registers_memory().read(rt))
                     rs_rt_values = self.__short_circuit_unit.check_ex_mem([rs, rt],
                                                                           [rs_value, rt_value])
                     rs_value = rs_rt_values.get(rs, None)
@@ -130,7 +128,7 @@ class Segmentation:
             elif len(re.split(r',\s*', if_id)) == 2:
                 if cod_op == "sw":
                     rs, rd = re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1]
-                    rs_value = RegistersMemory.read(rs)
+                    rs_value = self.__circuit.get_registers_memory().read(rs)
                     rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
                                                                        [rs_value])
                                 .get(rs, None))
@@ -142,7 +140,7 @@ class Segmentation:
                         print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                               f"[ControlUnit]: Register '{rs}' provoked a bubble. {Style.RESET_ALL}")
                         return False, True
-                    mem_address, which_mem = LabelAddressMemory.read(rd)
+                    mem_address, which_mem = self.__circuit.get_label_address_memory().read(rd)
                     if which_mem != 'D':
                         raise Exception(f"{datetime.now().strftime('[%H:%M:%S]')}"
                                         f"[ControlUnit]: Wrong memory access, aborting execution ...")
@@ -150,7 +148,7 @@ class Segmentation:
                     return True, None
                 elif cod_op == "la" or cod_op == "lw":
                     rd, rs = re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1]
-                    mem_address, which_mem = LabelAddressMemory.read(rs)
+                    mem_address, which_mem = self.__circuit.get_label_address_memory().read(rs)
                     rs = mem_address
                     if which_mem != 'D':
                         raise Exception(f"{datetime.now().strftime('[%H:%M:%S]')}"
@@ -176,10 +174,11 @@ class Segmentation:
                 mem_wb.write(ex_mem.read_destination(), ex_mem.read_address_or_value())
                 return True
             elif ex_mem.read_cod_op() == "la" or ex_mem.read_cod_op() == "lw":
-                mem_wb.write(ex_mem.read_destination(), DataMemory.read(ex_mem.read_address_or_value()))
+                mem_wb.write(ex_mem.read_destination(), self.__circuit.get_data_memory()
+                             .read(ex_mem.read_address_or_value()))
                 return True
             elif ex_mem.read_cod_op() == "sw":
-                DataMemory.write(ex_mem.read_destination(), ex_mem.read_address_or_value())
+                self.__circuit.get_data_memory().write(ex_mem.read_destination(), ex_mem.read_address_or_value())
                 return False
         self.__circuit.get_mem_wb().clear()
         return False
@@ -213,10 +212,10 @@ class Segmentation:
                     raise Exception("SysCall wrong code ...")
             elif cod_op == "bge" or cod_op == "j":
                 if id_ex.read_jump_on() is True:
-                    time.sleep(1)
+                    time.sleep(0.1)
                     print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[ControlUnit]: Address calculated to jump.{Style.RESET_ALL}")
-                    address_to_go, which_mem = LabelAddressMemory.read(id_ex.read_rd())
+                    address_to_go, which_mem = self.__circuit.get_label_address_memory().read(id_ex.read_rd())
                     if which_mem != 'I':
                         raise Exception(f"{datetime.now().strftime('[%H:%M:%S]')}"
                                         f"[ControlUnit]: Wrong memory access, aborting execution ...")
@@ -248,5 +247,5 @@ class Segmentation:
     def write_back(self, mem_wb):
         if mem_wb is not False:
             mem_wb = self.__circuit.get_mem_wb()
-            RegistersMemory.write(mem_wb.read_destination(),
-                                  mem_wb.read_address_or_value())
+            self.__circuit.get_registers_memory().write(mem_wb.read_destination(),
+                                                        mem_wb.read_address_or_value())

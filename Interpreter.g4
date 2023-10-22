@@ -2,10 +2,39 @@ grammar Interpreter;
 
 /********* Imports *********/
 @parser::header {
-from Memory.InstructionMemory import InstructionMemory
-from Memory.DataMemory import DataMemory
-from Memory.LabelAddressMemory import LabelAddressMemory
+from Circuit import Circuit
 }
+
+/********* Rules *********/
+data[circuit] returns [new_circuit]: TAG WS? ('.asciiz' STRING {
+generated_address = $circuit.get_data_memory().generate_address()
+$circuit.get_data_memory().write(generated_address, $STRING.text)
+$circuit.get_label_address_memory().write($TAG.text.replace(':', ''), (generated_address, 'D'))
+} | '.word' INTEGER {
+generated_address = $circuit.get_data_memory().generate_address()
+$circuit.get_data_memory().write($circuit.get_data_memory().generate_address(),
+        int($INTEGER.text))
+$circuit.get_label_address_memory().write($TAG.text.replace(':', ''), (generated_address, 'D'))
+}) {$new_circuit = $circuit} ;
+data_block[circuit] returns [new_circuit]: '.data' WS? data[$circuit] (WS? data[$circuit])* WS? {
+$new_circuit = $data.new_circuit
+};
+instruction[circuit] returns [generated_address, new_circuit]: (SYSCALL | R_OPERATION | I_OPERATION
+| J_OPERATION) {
+generated_address = $circuit.get_instruction_memory().generate_address()
+$circuit.get_instruction_memory().write(generated_address, $text.replace('\t', '    '))
+$generated_address = generated_address
+} {$new_circuit = $circuit} ;
+instruction_block[circuit] returns [new_circuit]: TAG WS? instruction[$circuit] {
+$instruction.new_circuit.get_label_address_memory().write($TAG.text.replace(':', ''), ($instruction.generated_address, 'I'))
+} (WS? instruction[$circuit])* WS? {
+$new_circuit = $instruction.new_circuit
+};
+interpret returns [circuit]: {
+$circuit = Circuit();
+}data_block[$circuit]? '.text' {$circuit = $data_block.new_circuit}instruction_block[$circuit]+ {
+$circuit = $instruction_block.new_circuit
+}| COMMENT ;
 
 /********* Utilities *********/
 WS: [ \t\r\n]+ -> skip; // Ignore tabs, spaces, and more
@@ -36,26 +65,3 @@ I_OPERATION: BGE | LI | LA | LW | SW ;
 
 /********* J Operations *********/
 J_OPERATION: 'j' WS [A-Za-z]+ ;
-
-/********* Rules *********/
-data: TAG WS? ('.asciiz' STRING {
-generated_address = DataMemory.generate_address()
-DataMemory.write(generated_address, $STRING.text)
-LabelAddressMemory.write($TAG.text.replace(':', ''), (generated_address, 'D'))
-} | '.word' INTEGER {
-generated_address = DataMemory.generate_address()
-DataMemory.write(DataMemory.generate_address(),
-        int($INTEGER.text))
-LabelAddressMemory.write($TAG.text.replace(':', ''), (generated_address, 'D'))
-}) ;
-data_block: '.data' WS? data (WS? data)* WS? ;
-instruction returns [generated_address]: (SYSCALL | R_OPERATION | I_OPERATION
-| J_OPERATION) {
-generated_address = InstructionMemory.generate_address()
-InstructionMemory.write(generated_address, $text.replace('\t', '    '))
-$generated_address = generated_address
-} ;
-instruction_block: TAG WS? instruction {
-LabelAddressMemory.write($TAG.text.replace(':', ''), ($instruction.generated_address, 'I'))
-} (WS? instruction)* WS? ;
-interpret: data_block? '.text' instruction_block+ | COMMENT ;
