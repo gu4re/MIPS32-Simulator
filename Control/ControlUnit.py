@@ -75,7 +75,7 @@ class ControlUnit:
                       f"{'-'*45} ITERATION {i} {'-'*45}{Style.RESET_ALL}")
                 i = i + 1
                 self.__segmentation.write_back(mem_wb)
-                aux = self.__segmentation.execute(id_ex)
+                aux, need_flush = self.__segmentation.execute(id_ex)
                 mem_wb = self.__segmentation.memory(ex_mem)
                 # Need due to tunneling memory between EX and MEM phase
                 ex_mem = aux
@@ -85,7 +85,7 @@ class ControlUnit:
                                                       self.__circuit.get_aux_ex_mem().read_address_or_value(True))
                 else:
                     self.__circuit.get_ex_mem().clear()
-                id_ex, exists_bubble = self.__segmentation.decode(if_id)
+                id_ex, exists_bubble = self.__segmentation.decode(if_id, need_flush)
                 if exists_bubble is True:
                     continue
                 if_id = self.__segmentation.fetch()

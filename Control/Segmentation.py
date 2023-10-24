@@ -30,7 +30,12 @@ class Segmentation:
         self.__circuit.get_pc().update(content_pc)
         return True
 
-    def decode(self, if_id):
+    def decode(self, if_id, need_flush):
+        if need_flush:
+            self.__circuit.get_id_ex().clear()
+            print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
+                  f"[Decoder]: Clear IDEX register.{Style.RESET_ALL}")
+            return False, None
         if (if_id is not False
                 and self.__circuit.get_if_id().read_instruction() is not None):
             if_id = self.__circuit.get_if_id().read_instruction()
@@ -197,7 +202,7 @@ class Segmentation:
                     a0_value = id_ex.read_rt()
                     print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[SysCall/Output]: {a0_value}{Style.RESET_ALL}")
-                    return False
+                    return False, None
                 elif int(v0_value) == 5:
                     print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
                           f"[SysCall/Input]: {Style.RESET_ALL}", end="")
@@ -207,7 +212,7 @@ class Segmentation:
                     if inp == 0 or inp == 1:
                         raise Exception("Expected number above 1. Aborting program to avoid infinite loop ...")
                     self.__circuit.get_aux_ex_mem().write(cod_op, "$v0", inp, True)
-                    return True
+                    return True, None
                 else:
                     raise Exception("SysCall wrong code ...")
             elif cod_op == "bge" or cod_op == "j":
@@ -221,28 +226,27 @@ class Segmentation:
                                         f"[ControlUnit]: Wrong memory access, aborting execution ...")
                     # Need a correction changing PC registry so (address_to_go - 4 + 4)
                     self.__circuit.get_pc().update(hex(int(address_to_go, 16) - 4))
-                    self.__circuit.get_id_ex().clear()
-                    self.__circuit.get_if_id().clear()
                     print(f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"
-                          f"[ControlUnit]: Clear registries and update PC.{Style.RESET_ALL}")
-                return False, True
+                          f"[ControlUnit]: New address stored in PC.{Style.RESET_ALL}")
+                    return False, True
+                return False, None
             elif cod_op == "addi" or cod_op == "add":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd,
                                                       self.__circuit.get_basic_alu().add(int(rs), int(rt)), True)
-                return True
+                return True, None
             elif cod_op == "mul":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd,
                                                       self.__circuit.get_basic_alu().multiply(int(rs), int(rt)), True)
-                return True
+                return True, None
             elif cod_op == "sub":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd,
                                                       self.__circuit.get_basic_alu().subtract(int(rs), int(rt)), True)
-                return True
+                return True, None
             elif cod_op == "li" or cod_op == "la" or cod_op == "sw" or cod_op == "lw":
                 self.__circuit.get_aux_ex_mem().write(cod_op, rd, rs, True)
-                return True
+                return True, None
         self.__circuit.get_aux_ex_mem().clear(True)
-        return False
+        return False, None
 
     def write_back(self, mem_wb):
         if mem_wb is not False:
