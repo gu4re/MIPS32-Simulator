@@ -1,8 +1,8 @@
 from Register.PC import PC
-from Register.Mem_Wb import Mem_Wb
-from Register.If_Id import If_Id
-from Register.Id_Ex import Id_Ex
-from Register.Ex_Mem import Ex_Mem
+from Register.MemWb import MemWb
+from Register.IfId import IfId
+from Register.IdEx import IdEx
+from Register.ExMem import ExMem
 from ALU.BasicALU import BasicALU
 from ALU.ConditionalALU import ConditionalALU
 from Memory.DataMemory import DataMemory
@@ -14,11 +14,11 @@ from Memory.RegistersMemory import RegistersMemory
 class Circuit:
     def __init__(self):
         self.__PC = PC()
-        self.__mem_wb = Mem_Wb()
-        self.__if_id = If_Id()
-        self.__id_ex = Id_Ex()
-        self.__ex_mem = Ex_Mem()
-        self.__aux_ex_mem = Ex_Mem()
+        self.__mem_wb = MemWb()
+        self.__if_id = IfId()
+        self.__id_ex = IdEx()
+        self.__ex_mem = ExMem()
+        self.__aux_ex_mem = ExMem()
         self.__basic_alu = BasicALU()
         self.__conditional_alu = ConditionalALU()
         self.__data_memory = DataMemory()

@@ -4,22 +4,18 @@ from abc import ABC, abstractmethod
 # Memory Interface
 class Memory(ABC):
 
-    @staticmethod
     @abstractmethod
-    def write(key, value):
+    def write(self, key, value):
         pass
 
-    @staticmethod
     @abstractmethod
-    def read(key):
+    def read(self, key):
         pass
 
-    @staticmethod
     @abstractmethod
-    def print():
+    def print(self):
         pass
 
-    @staticmethod
     @abstractmethod
-    def generate_address():
+    def generate_address(self):
         pass

@@ -2,7 +2,7 @@ from datetime import datetime
 import time
 
 
-class Id_Ex:
+class IdEx:
     def __init__(self):
         self.__cod_op = None
         self.__rd = None

@@ -8,7 +8,7 @@ from library.antlr4 import *
 from io import StringIO
 from library.colorama import Fore, Style
 from Control.Segmentation import Segmentation
-from Control.ShortCircuitUnit import ShortCircuitUnit
+from Control.ForwardingUnit import ForwardingUnit
 from Circuit import Circuit
 
 
@@ -17,12 +17,12 @@ class ControlUnit:
     def __init__(self):
         self.__circuit = Circuit()
         self.__segmentation = Segmentation(self.__circuit,
-                                           ShortCircuitUnit(self.__circuit))
+                                           ForwardingUnit(self.__circuit))
 
     # Used only once at the beginning to override the empty Circuit with the one which has read data
     def override_circuit(self, circuit):
         self.__circuit = circuit
-        self.__segmentation = Segmentation(circuit, ShortCircuitUnit(circuit))
+        self.__segmentation = Segmentation(circuit, ForwardingUnit(circuit))
 
     def interpret(self, argv):
         time.sleep(0.2)
@@ -85,8 +85,8 @@ class ControlUnit:
                                                       self.__circuit.get_aux_ex_mem().read_address_or_value(True))
                 else:
                     self.__circuit.get_ex_mem().clear()
-                id_ex, exits_bubble = self.__segmentation.decode(if_id)
-                if exits_bubble is True:
+                id_ex, exists_bubble = self.__segmentation.decode(if_id)
+                if exists_bubble is True:
                     continue
                 if_id = self.__segmentation.fetch()
                 # If all the variables are empty, we break the loop

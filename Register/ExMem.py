@@ -2,7 +2,7 @@ from datetime import datetime
 import time
 
 
-class Ex_Mem:
+class ExMem:
     def __init__(self):
         self.__cod_op = None
         self.__destination = None

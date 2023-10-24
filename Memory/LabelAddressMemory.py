@@ -1,6 +1,6 @@
 import time
 
-from Memory.Interface import Memory
+from Memory.Memory import Memory
 from datetime import datetime
 
 

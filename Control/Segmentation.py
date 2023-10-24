@@ -3,16 +3,16 @@ import time
 from datetime import datetime
 from library.colorama import Fore, Style
 from Circuit import Circuit
-from Control.ShortCircuitUnit import ShortCircuitUnit
+from Control.ForwardingUnit import ForwardingUnit
 
 import re
 
 
 class Segmentation:
 
-    def __init__(self, circuit: Circuit, short_circuit_unit: ShortCircuitUnit):
+    def __init__(self, circuit: Circuit, forwarding_unit: ForwardingUnit):
         self.__circuit = circuit
-        self.__short_circuit_unit = short_circuit_unit
+        self.__forwarding_unit = forwarding_unit
 
     def fetch(self):
         content_pc = self.__circuit.get_pc().read()
@@ -40,10 +40,10 @@ class Segmentation:
             if if_id == "syscall":
                 rt = self.__circuit.get_registers_memory().read("$a0")
                 rs = self.__circuit.get_registers_memory().read("$v0")
-                rs_rt = self.__short_circuit_unit.check_ex_mem(["$a0", "$v0"], [rt, rs])
+                rs_rt = self.__forwarding_unit.check_ex_mem(["$a0", "$v0"], [rt, rs])
                 rt = rs_rt.get("$a0", None)
                 rs = rs_rt.get("$v0", None)
-                rs_rt = self.__short_circuit_unit.check_mem_wb(["$a0", "$v0"], [rt, rs])
+                rs_rt = self.__forwarding_unit.check_mem_wb(["$a0", "$v0"], [rt, rs])
                 rt = rs_rt.get("$a0", None)
                 rs = rs_rt.get("$v0", None)
                 if rt is None or rs is None:
@@ -67,12 +67,12 @@ class Segmentation:
                 if cod_op == "bge":
                     rd_value, rs_value = (self.__circuit.get_registers_memory().read(rd),
                                           self.__circuit.get_registers_memory().read(rs))
-                    rd_rs_values = self.__short_circuit_unit.check_ex_mem([rd, rs],
-                                                                          [rd_value, rs_value])
+                    rd_rs_values = self.__forwarding_unit.check_ex_mem([rd, rs],
+                                                                       [rd_value, rs_value])
                     rd_value = rd_rs_values.get(rd, None)
                     rs_value = rd_rs_values.get(rs, None)
-                    rd_rs_values = self.__short_circuit_unit.check_mem_wb([rd, rs],
-                                                                          [rd_value, rs_value])
+                    rd_rs_values = self.__forwarding_unit.check_mem_wb([rd, rs],
+                                                                       [rd_value, rs_value])
                     rd_value = rd_rs_values.get(rd, None)
                     rs_value = rd_rs_values.get(rs, None)
                     if rd_value is None or rs_value is None:
@@ -90,12 +90,12 @@ class Segmentation:
                     return True, None
                 if cod_op == "addi":
                     rs_value = self.__circuit.get_registers_memory().read(rs)
-                    new_rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
-                                                                           [rs_value])
+                    new_rs_value = (self.__forwarding_unit.check_ex_mem([rs],
+                                                                        [rs_value])
                                     .get(rs, None))
                     if new_rs_value is None:
-                        new_rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
-                                                                               [new_rs_value])
+                        new_rs_value = (self.__forwarding_unit.check_mem_wb([rs],
+                                                                            [new_rs_value])
                                         .get(rs, None))
                         if new_rs_value is None:
                             raise Exception(f"Instruction '{cod_op}' should not provoked a bubble. {Style.RESET_ALL}")
@@ -108,12 +108,12 @@ class Segmentation:
                 else:
                     rs_value, rt_value = (self.__circuit.get_registers_memory().read(rs),
                                           self.__circuit.get_registers_memory().read(rt))
-                    rs_rt_values = self.__short_circuit_unit.check_ex_mem([rs, rt],
-                                                                          [rs_value, rt_value])
+                    rs_rt_values = self.__forwarding_unit.check_ex_mem([rs, rt],
+                                                                       [rs_value, rt_value])
                     rs_value = rs_rt_values.get(rs, None)
                     rt_value = rs_rt_values.get(rt, None)
-                    rs_rt_values = self.__short_circuit_unit.check_mem_wb([rs, rt],
-                                                                          [rs_value, rt_value])
+                    rs_rt_values = self.__forwarding_unit.check_mem_wb([rs, rt],
+                                                                       [rs_value, rt_value])
                     rs_value = rs_rt_values.get(rs, None)
                     rt_value = rs_rt_values.get(rt, None)
                     if rs_value is None or rt_value is None:
@@ -129,12 +129,12 @@ class Segmentation:
                 if cod_op == "sw":
                     rs, rd = re.split(r',\s*', if_id)[0].split()[1], re.split(r',\s*', if_id)[1]
                     rs_value = self.__circuit.get_registers_memory().read(rs)
-                    rs_value = (self.__short_circuit_unit.check_ex_mem([rs],
-                                                                       [rs_value])
+                    rs_value = (self.__forwarding_unit.check_ex_mem([rs],
+                                                                    [rs_value])
                                 .get(rs, None))
                     if rs_value is None:
-                        rs_value = (self.__short_circuit_unit.check_mem_wb([rs],
-                                                                           [rs_value])
+                        rs_value = (self.__forwarding_unit.check_mem_wb([rs],
+                                                                        [rs_value])
                                     .get(rs, None))
                     if rs_value is None:
                         print(f"{Fore.YELLOW}{Style.BRIGHT}{datetime.now().strftime('[%H:%M:%S]')}"

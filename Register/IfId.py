@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 
 
-class If_Id:
+class IfId:
     def __init__(self):
         self.__instruction = None
 
