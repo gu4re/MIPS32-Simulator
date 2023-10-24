@@ -38,6 +38,6 @@ exit:
         la	    $a0,msg2
         syscall
         # Print result
-        li	    $v0,1		# print_string syscall code = 4
+        li	    $v0,1		# print_string syscall code = 1
         addi	$a0,$t3,0
         syscall
